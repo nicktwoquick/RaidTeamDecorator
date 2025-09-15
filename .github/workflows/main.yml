@@ -1,8 +1,8 @@
 name: 'Create release'
 on:
   push:
-    branches:
-      - 'main'
+    tags:
+      - 'v*'
 
 jobs:
   prepare:
@@ -29,8 +29,6 @@ jobs:
     name: Create GitHub Release
     needs: [prepare]
     runs-on: ubuntu-latest
-    outputs:
-      tag: ${{ steps.tag.outputs.tag }}
     steps:
     - uses: actions/checkout@v4
       with:
@@ -45,7 +43,6 @@ jobs:
         else
           tag="${{ needs.prepare.outputs.tagname }}"
         fi
-        echo "tag=$tag" >> $GITHUB_OUTPUT
     
     - name: Create Release
       env:
@@ -56,6 +53,7 @@ jobs:
         body="RaidTeamDecorator@${{ needs.prepare.outputs.commit }}"
         gh release create --draft "$tag" --title "$tag" --notes "$body"
   build:
+    name: Zip and attach
     needs: [prepare, release]
     runs-on: ubuntu-latest
     steps:
@@ -74,11 +72,11 @@ jobs:
         GH_REPO: ${{ github.repository }}
       run: |
         cd ../
-        gh release upload "${{ needs.prepare.outputs.tagname }}" "RaidTeamDecorator_${{ needs.prepare.outputs.tagname }}.zip"
+        gh release upload "${{ needs.prepare.outputs.tagname }}" "RaidTeamDecorator-${{ needs.prepare.outputs.tagname }}.zip"
 
   publish:
     name: Publish Release
-    needs: [release, build]
+    needs: [prepare, release, build]
     runs-on: ubuntu-latest
     environment: Release
     steps:
