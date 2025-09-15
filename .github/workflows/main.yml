@@ -67,7 +67,7 @@ jobs:
         GH_REPO: ${{ github.repository }}
       run: |
         cd ../
-        gh release upload "${{ needs.release.outputs.tag }}" "RaidTeamDecorator.zip"
+        gh release upload "${{ needs.release.outputs.tag }}" "RaidTeamDecorator${{ needs.release.outputs.tag }}.zip"
 
   publish:
     name: Publish Release
