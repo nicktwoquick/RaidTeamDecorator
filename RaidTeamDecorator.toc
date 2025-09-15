@@ -3,11 +3,13 @@
 ## Notes: Displays raid team information in chat messages
 ## Author: RaidTeamDecorator
 ## Version: 1.0.0
+## SavedVariables: RaidTeamDecoratorDB
 
 # Libraries (load first)
 libs\LibStub\LibStub.lua
 libs\AceAddon-3.0\AceAddon-3.0.xml
 libs\AceGUI-3.0\AceGUI-3.0.xml
 libs\AceConfig-3.0\AceConfig-3.0.xml
+libs\AceDB-3.0\AceDB-3.0.xml
 
 RaidTeamChat.lua
