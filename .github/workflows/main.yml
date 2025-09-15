@@ -10,13 +10,20 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       commit: ${{ steps.latest_commit.outputs.commit }}
+      tagname: ${{ steps.get_tag.outputs.tagname }}
     steps:
     - name: Clone 
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Set latest_commit
       id: latest_commit
       run: echo "commit=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+    - name: Get latest tag
+      id: get_tag
+      run: echo "tagname=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
   
   release:
     name: Create GitHub Release
@@ -36,7 +43,7 @@ jobs:
         if [[ "${{ github.event_name }}" != "push" ]]; then
           tag=v$(date +%Y%m%d.%H%M%S)
         else
-          tag=$(basename "${{ github.ref }}")
+          tag="${{ needs.prepare.outputs.tagname }}"
         fi
         echo "tag=$tag" >> $GITHUB_OUTPUT
     
@@ -45,7 +52,7 @@ jobs:
         GH_TOKEN: ${{ github.token }}
         GH_REPO: ${{ github.repository }}
       run: |
-        tag="${{ steps.tag.outputs.tag }}"
+        tag="${{ needs.prepare.outputs.tagname }}"
         body="RaidTeamDecorator@${{ needs.prepare.outputs.commit }}"
         gh release create --draft "$tag" --title "$tag" --notes "$body"
   build:
@@ -59,7 +66,7 @@ jobs:
       run: |
         cd ../
         rm -rf RaidTeamDecorator.zip
-        zip -r RaidTeamDecorator_${{ needs.release.outputs.tag }}.zip RaidTeamDecorator -x "RaidTeamDecorator/.git/*" "RaidTeamDecorator/.github/*"
+        zip -r RaidTeamDecorator-${{ needs.prepare.outputs.tagname }}.zip RaidTeamDecorator -x "RaidTeamDecorator/.git/*" "RaidTeamDecorator/.github/*"
 
     - name: Upload
       env:
@@ -67,7 +74,7 @@ jobs:
         GH_REPO: ${{ github.repository }}
       run: |
         cd ../
-        gh release upload "${{ needs.release.outputs.tag }}" "RaidTeamDecorator_${{ needs.release.outputs.tag }}.zip"
+        gh release upload "${{ needs.prepare.outputs.tagname }}" "RaidTeamDecorator_${{ needs.prepare.outputs.tagname }}.zip"
 
   publish:
     name: Publish Release
@@ -79,4 +86,4 @@ jobs:
       env:
         GH_TOKEN: ${{ github.token }}
         GH_REPO: ${{ github.repository }}
-      run: gh release edit "${{ needs.release.outputs.tag }}" --draft=false
+      run: gh release edit "${{ needs.prepare.outputs.tagname }}" --draft=false
