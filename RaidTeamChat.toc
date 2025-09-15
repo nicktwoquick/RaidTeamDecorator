@@ -1,0 +1,9 @@
+## Interface: 11403
+## Title: Raid Team Chat
+## Notes: Displays raid team information in chat messages
+## Author: RaidTeamDecorator
+## Version: 1.0.0
+## Dependencies: Guild_Roster_Manager
+## OptionalDeps: Guild_Roster_Manager
+
+RaidTeamChat.lua
