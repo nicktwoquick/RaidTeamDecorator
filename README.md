@@ -42,16 +42,16 @@ The addon recognizes these patterns in GRM custom notes:
 
 ### Raid Team Colors
 
-- **RT1**: Red
-- **RT2**: Teal  
-- **RT3**: Blue
-- **RT4**: Green
-- **RT5**: Yellow
-- **RT6**: Plum
-- **RT7**: Mint
-- **RT8**: Gold
-- **RT9**: Lavender
-- **RT10**: Light Blue
+- **RT1**: Dark Orange
+- **RT2**: Royal Blue
+- **RT3**: Blue Violet
+- **RT4**: Gold
+- **RT5**: Dark Turquoise
+- **RT6**: Deep Pink
+- **RT7**: Lime Green
+- **RT8**: Orange Red
+- **RT9**: Medium Purple
+- **RT10**: Light Sea Green
 
 ### Slash Commands
 

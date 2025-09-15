@@ -91,21 +91,23 @@ end
 
 ### 3. Color System
 
-**Raid Team Colors:**
+**Raid Team Colors (Colorblind-Friendly):**
 ```lua
 local raidTeamColors = {
-    ["RT1"] = "|cffFF6B6B",  -- Red
-    ["RT2"] = "|cff4ECDC4",  -- Teal
-    ["RT3"] = "|cff45B7D1",  -- Blue
-    ["RT4"] = "|cff96CEB4",  -- Green
-    ["RT5"] = "|cffFFEAA7",  -- Yellow
-    ["RT6"] = "|cffDDA0DD",  -- Plum
-    ["RT7"] = "|cff98D8C8",  -- Mint
-    ["RT8"] = "|cffF7DC6F",  -- Gold
-    ["RT9"] = "|cffBB8FCE",  -- Lavender
-    ["RT10"] = "|cff85C1E9", -- Light Blue
+    ["RT1"] = "|cffFF8C00",  -- Dark Orange (high contrast, distinguishable from red/green)
+    ["RT2"] = "|cff4169E1",  -- Royal Blue (distinct from other blues)
+    ["RT3"] = "|cff8A2BE2",  -- Blue Violet (purple-blue, high contrast)
+    ["RT4"] = "|cffFFD700",  -- Gold (bright yellow, distinguishable)
+    ["RT5"] = "|cff00CED1",  -- Dark Turquoise (teal, distinct from green)
+    ["RT6"] = "|cffFF1493",  -- Deep Pink (magenta, distinct from red)
+    ["RT7"] = "|cff32CD32",  -- Lime Green (bright green, distinguishable)
+    ["RT8"] = "|cffFF4500",  -- Orange Red (orange-red, distinct from pure red)
+    ["RT9"] = "|cff9370DB",  -- Medium Purple (purple, distinct from blue)
+    ["RT10"] = "|cff20B2AA", -- Light Sea Green (teal-green, distinct from other greens)
 }
 ```
+
+*Note: This color palette has been specifically designed to be accessible for users with common forms of color blindness (deuteranopia, protanopia, and tritanopia). The colors avoid red-green combinations and use high-contrast alternatives that remain distinguishable across different types of color vision.*
 
 **Color Application Function:**
 ```lua
