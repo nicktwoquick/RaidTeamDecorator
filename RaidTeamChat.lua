@@ -40,6 +40,9 @@ RaidTeamCache = {}
 -- Flag to prevent multiple simultaneous UpdateChatHooks calls
 local updatingChatHooks = false
 
+-- Store filter function references for proper cleanup
+local chatFilterFunctions = {}
+
 -- Configuration options
 local options = {
     name = "Raid Team Chat",
@@ -182,24 +185,13 @@ function RaidTeamChat:OnDisable()
 end
 
 function RaidTeamChat:UnhookAll()
-    -- Remove all chat filters
-    local chatFilters = {
-        "CHAT_MSG_GUILD",
-        "CHAT_MSG_OFFICER", 
-        "CHAT_MSG_PARTY",
-        "CHAT_MSG_PARTY_LEADER",
-        "CHAT_MSG_RAID",
-        "CHAT_MSG_RAID_LEADER",
-        "CHAT_MSG_INSTANCE_CHAT",
-        "CHAT_MSG_INSTANCE_CHAT_LEADER",
-        "CHAT_MSG_WHISPER"
-    }
-    
-    for _, filter in ipairs(chatFilters) do
-        ChatFrame_RemoveMessageEventFilter(filter, function(self, event, msg, sender, ...)
-            return RaidTeamChat:ChatMessageFilter(event, msg, sender, ...)
-        end)
+    -- Remove all chat filters using stored function references
+    for filter, filterFunc in pairs(chatFilterFunctions) do
+        ChatFrame_RemoveMessageEventFilter(filter, filterFunc)
     end
+    
+    -- Clear the stored functions
+    chatFilterFunctions = {}
 end
 
 function RaidTeamChat:OnAddonLoaded(event, addonName)
@@ -611,9 +603,16 @@ function RaidTeamChat:UpdateChatHooks()
     }
     
     for _, filter in ipairs(chatFilters) do
-        ChatFrame_AddMessageEventFilter(filter, function(self, event, msg, sender, ...)
+        -- Create and store the filter function
+        local filterFunc = function(self, event, msg, sender, ...)
             return RaidTeamChat:ChatMessageFilter(event, msg, sender, ...)
-        end)
+        end
+        
+        -- Store the function reference for proper cleanup
+        chatFilterFunctions[filter] = filterFunc
+        
+        -- Add the filter
+        ChatFrame_AddMessageEventFilter(filter, filterFunc)
     end
     updatingChatHooks = false
 end
