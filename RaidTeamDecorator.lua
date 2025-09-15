@@ -1,4 +1,4 @@
--- RaidTeamDecorator - Displays raid team information in chat messages
+-- RaidTeamDecorator - Displays raid team information in chat messages and tooltips
 -- Integrates with Guild Roster Manager (GRM) to show raid team tags
 
 local RaidTeamDecorator = LibStub("AceAddon-3.0"):NewAddon("RaidTeamDecorator", "AceConsole-3.0", "AceEvent-3.0")
@@ -31,7 +31,13 @@ local defaults = {
     showInRaid = true,
     showInWhisper = false,
     showInInstance = true,
-    debugMode = false
+    debugMode = false,
+    -- Tooltip settings
+    enableTooltips = true,
+    showTooltipInGuild = true,
+    showTooltipInParty = true,
+    showTooltipInRaid = true,
+    showTooltipInBattleground = true
 }
 
 -- Global cache for raid team data
@@ -42,6 +48,9 @@ local updatingChatHooks = false
 
 -- Store filter function references for proper cleanup
 local chatFilterFunctions = {}
+
+-- Store tooltip hook references for proper cleanup
+local tooltipHooks = {}
 
 -- Configuration options
 local options = {
@@ -138,6 +147,65 @@ local options = {
                 },
             },
         },
+        tooltips = {
+            type = "group",
+            name = "Tooltip Settings",
+            desc = "Configure tooltip display options",
+            order = 4,
+            args = {
+                enableTooltips = {
+                    type = "toggle",
+                    name = "Enable Tooltips",
+                    desc = "Show raid team information in tooltips when hovering over players",
+                    get = function() return RaidTeamDecorator.db.profile.enableTooltips end,
+                    set = function(info, value)
+                        RaidTeamDecorator.db.profile.enableTooltips = value
+                        RaidTeamDecorator:UpdateTooltipHooks()
+                    end,
+                    order = 1,
+                },
+                showTooltipInGuild = {
+                    type = "toggle",
+                    name = "Guild Members",
+                    desc = "Show raid teams in tooltips for guild members",
+                    get = function() return RaidTeamDecorator.db.profile.showTooltipInGuild end,
+                    set = function(info, value)
+                        RaidTeamDecorator.db.profile.showTooltipInGuild = value
+                    end,
+                    order = 2,
+                },
+                showTooltipInParty = {
+                    type = "toggle",
+                    name = "Party Members",
+                    desc = "Show raid teams in tooltips for party members",
+                    get = function() return RaidTeamDecorator.db.profile.showTooltipInParty end,
+                    set = function(info, value)
+                        RaidTeamDecorator.db.profile.showTooltipInParty = value
+                    end,
+                    order = 3,
+                },
+                showTooltipInRaid = {
+                    type = "toggle",
+                    name = "Raid Members",
+                    desc = "Show raid teams in tooltips for raid members",
+                    get = function() return RaidTeamDecorator.db.profile.showTooltipInRaid end,
+                    set = function(info, value)
+                        RaidTeamDecorator.db.profile.showTooltipInRaid = value
+                    end,
+                    order = 4,
+                },
+                showTooltipInBattleground = {
+                    type = "toggle",
+                    name = "Battleground Members",
+                    desc = "Show raid teams in tooltips for guild members in the same battleground",
+                    get = function() return RaidTeamDecorator.db.profile.showTooltipInBattleground end,
+                    set = function(info, value)
+                        RaidTeamDecorator.db.profile.showTooltipInBattleground = value
+                    end,
+                    order = 5,
+                },
+            },
+        },
         refresh = {
             type = "execute",
             name = "Refresh Cache",
@@ -146,7 +214,7 @@ local options = {
                 RaidTeamDecorator:RefreshRaidTeamCache()
                 RaidTeamDecorator:Print("Raid team cache refreshed!")
             end,
-            order = 4,
+            order = 5,
         },
     },
 }
@@ -177,6 +245,11 @@ function RaidTeamDecorator:OnEnable()
     if self.db.profile.enabled then
         self:UpdateChatHooks()
     end
+    
+    -- Set up tooltip hooks if enabled
+    if self.db.profile.enableTooltips then
+        self:UpdateTooltipHooks()
+    end
 end
 
 function RaidTeamDecorator:OnDisable()
@@ -192,6 +265,21 @@ function RaidTeamDecorator:UnhookAll()
     
     -- Clear the stored functions
     chatFilterFunctions = {}
+    
+    -- Remove all tooltip hooks
+    self:UnhookTooltips()
+end
+
+function RaidTeamDecorator:UnhookTooltips()
+    -- Remove all tooltip hooks using stored function references
+    for tooltip, originalFunc in pairs(tooltipHooks) do
+        if tooltip and originalFunc then
+            tooltip.SetUnit = originalFunc
+        end
+    end
+    
+    -- Clear the stored functions
+    tooltipHooks = {}
 end
 
 function RaidTeamDecorator:OnAddonLoaded(event, addonName)
@@ -219,6 +307,11 @@ function RaidTeamDecorator:OnPlayerLogin()
         self:DebugPrint("Frame timer created successfully")
     else
         self:DebugPrint("Addon not enabled, skipping cache refresh")
+    end
+    
+    -- Set up tooltip hooks if enabled
+    if self.db.profile.enableTooltips then
+        self:UpdateTooltipHooks()
     end
 end
 
@@ -268,6 +361,10 @@ function RaidTeamDecorator:SlashCommand(input)
         elseif command == "debug" then
             self.db.profile.debugMode = not self.db.profile.debugMode
             self:Print("Debug mode " .. (self.db.profile.debugMode and "enabled" or "disabled"))
+        elseif command == "tooltips" then
+            self.db.profile.enableTooltips = not self.db.profile.enableTooltips
+            self:UpdateTooltipHooks()
+            self:Print("Tooltips " .. (self.db.profile.enableTooltips and "enabled" or "disabled"))
         elseif command == "channels" then
             self:Print("Channel Settings:")
             self:Print("  Guild: " .. (self.db.profile.showInGuild and "ON" or "OFF"))
@@ -276,11 +373,17 @@ function RaidTeamDecorator:SlashCommand(input)
             self:Print("  Raid: " .. (self.db.profile.showInRaid and "ON" or "OFF"))
             self:Print("  Whisper: " .. (self.db.profile.showInWhisper and "ON" or "OFF"))
             self:Print("  Instance: " .. (self.db.profile.showInInstance and "ON" or "OFF"))
+            self:Print("Tooltip Settings:")
+            self:Print("  Tooltips: " .. (self.db.profile.enableTooltips and "ON" or "OFF"))
+            self:Print("  Guild: " .. (self.db.profile.showTooltipInGuild and "ON" or "OFF"))
+            self:Print("  Party: " .. (self.db.profile.showTooltipInParty and "ON" or "OFF"))
+            self:Print("  Raid: " .. (self.db.profile.showTooltipInRaid and "ON" or "OFF"))
+            self:Print("  Battleground: " .. (self.db.profile.showTooltipInBattleground and "ON" or "OFF"))
         elseif command == "test" then
             self:Print("Testing chat filter function...")
             self:ChatMessageFilter("CHAT_MSG_WHISPER", "test message", "Mcfaithful")
         else
-            self:Print("Usage: /rtd [refresh|status|config|toggle|debug|channels|test]")
+            self:Print("Usage: /rtd [refresh|status|config|toggle|debug|tooltips|channels|test]")
         end
     end)
     
@@ -302,6 +405,7 @@ function RaidTeamDecorator:PrintStatus()
     local status = self.db.profile.enabled and "Enabled" or "Disabled"
     self:Print("Raid Team Decorator: " .. status)
     self:Print("Debug Mode: " .. (self.db.profile.debugMode and "On" or "Off"))
+    self:Print("Tooltips: " .. (self.db.profile.enableTooltips and "Enabled" or "Disabled"))
     self:Print("Cached Players: " .. self:GetCacheSize())
     self:Print("GRM Available: " .. (GRM_API and "Yes" or "No"))
     self:Print("In Guild: " .. (IsInGuild() and "Yes" or "No"))
@@ -615,6 +719,154 @@ function RaidTeamDecorator:UpdateChatHooks()
         ChatFrame_AddMessageEventFilter(filter, filterFunc)
     end
     updatingChatHooks = false
+end
+
+function RaidTeamDecorator:UpdateTooltipHooks()
+    -- Remove existing tooltip hooks
+    self:UnhookTooltips()
+    
+    if not self.db.profile.enableTooltips then
+        return
+    end
+    
+    -- Hook GameTooltip if it exists
+    if GameTooltip then
+        self:HookGameTooltip()
+    end
+    
+    -- Hook other common tooltips
+    if ItemRefTooltip then
+        self:HookTooltip(ItemRefTooltip)
+    end
+    
+    if WorldMapTooltip then
+        self:HookTooltip(WorldMapTooltip)
+    end
+end
+
+function RaidTeamDecorator:HookGameTooltip()
+    if not GameTooltip or tooltipHooks[GameTooltip] then
+        return
+    end
+    
+    -- Store the original SetUnit function
+    tooltipHooks[GameTooltip] = GameTooltip.SetUnit
+    
+    -- Create our hook function
+    local function TooltipSetUnitHook(self, unit)
+        -- Call the original function first
+        if tooltipHooks[GameTooltip] then
+            tooltipHooks[GameTooltip](self, unit)
+        end
+        
+        -- Add our raid team information
+        RaidTeamDecorator:AddRaidTeamToTooltip(self, unit)
+    end
+    
+    -- Replace the SetUnit function
+    GameTooltip.SetUnit = TooltipSetUnitHook
+end
+
+function RaidTeamDecorator:HookTooltip(tooltip)
+    if not tooltip or tooltipHooks[tooltip] then
+        return
+    end
+    
+    -- Store the original SetUnit function
+    tooltipHooks[tooltip] = tooltip.SetUnit
+    
+    -- Create our hook function
+    local function TooltipSetUnitHook(self, unit)
+        -- Call the original function first
+        if tooltipHooks[tooltip] then
+            tooltipHooks[tooltip](self, unit)
+        end
+        
+        -- Add our raid team information
+        RaidTeamDecorator:AddRaidTeamToTooltip(self, unit)
+    end
+    
+    -- Replace the SetUnit function
+    tooltip.SetUnit = TooltipSetUnitHook
+end
+
+function RaidTeamDecorator:AddRaidTeamToTooltip(tooltip, unit)
+    -- Early exit conditions
+    if not IsInGuild() or not GRM_API then
+        return
+    end
+    
+    -- Don't show for own unit
+    if UnitIsUnit(unit, "player") then
+        return
+    end
+    
+    -- Get the unit's name
+    local name = UnitName(unit)
+    if not name then
+        return
+    end
+    
+    -- Check if we should show tooltip for this context
+    if not self:ShouldShowTooltipForUnit(unit) then
+        return
+    end
+    
+    -- Get raid teams for this player
+    local raidTeams = self:GetPlayerRaidTeams(name)
+    
+    if #raidTeams > 0 then
+        -- Add a blank line for spacing
+        tooltip:AddLine(" ")
+        
+        -- Add raid team information with colors
+        local teamText = "Raid Team: "
+        for i, team in ipairs(raidTeams) do
+            if i > 1 then
+                teamText = teamText .. ", "
+            end
+            teamText = teamText .. self:GetColoredRaidTeam(team)
+        end
+        
+        tooltip:AddLine(teamText)
+    end
+end
+
+function RaidTeamDecorator:ShouldShowTooltipForUnit(unit)
+    -- Check if unit is in guild
+    if not UnitIsInMyGuild(unit) then
+        return false
+    end
+    
+    -- Check if unit is in party/raid
+    local inParty = UnitInParty(unit)
+    local inRaid = UnitInRaid(unit)
+    
+    -- Show for guild members if enabled
+    if self.db.profile.showTooltipInGuild then
+        return true
+    end
+    
+    -- Show for party members if enabled
+    if inParty and self.db.profile.showTooltipInParty then
+        return true
+    end
+    
+    -- Show for raid members if enabled
+    if inRaid and self.db.profile.showTooltipInRaid then
+        return true
+    end
+    
+    -- Show for battleground members if enabled
+    if self.db.profile.showTooltipInBattleground then
+        -- Check if we're in a battleground
+        local inBattleground = IsInInstance() and (GetZonePVPInfo() == "combat" or GetZonePVPInfo() == "friendly")
+        if inBattleground then
+            return true
+        end
+    end
+    
+    return false
 end
 
 function RaidTeamDecorator:ChatMessageFilter(event, msg, sender, ...)
