@@ -73,6 +73,7 @@ jobs:
     name: Publish Release
     needs: [release, build]
     runs-on: ubuntu-latest
+    environment: Release
     steps:
     - name: Publish Release
       env:
