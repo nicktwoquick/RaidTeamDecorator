@@ -2,7 +2,7 @@
 ## Title: RaidTeamDecorator
 ## Notes: Displays raid team information in chat messages
 ## Author: nicktwoquick
-## Version: 0.3.0
+## Version: 0.4.0
 ## SavedVariables: RaidTeamDecoratorDB
 
 # Libraries (load first)
