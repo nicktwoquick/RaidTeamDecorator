@@ -59,7 +59,7 @@ jobs:
       run: |
         cd ../
         rm -rf RaidTeamDecorator.zip
-        zip -r RaidTeamDecorator${{ needs.release.outputs.tag }}.zip RaidTeamDecorator -x "RaidTeamDecorator/.git/*" "RaidTeamDecorator/.github/*"
+        zip -r RaidTeamDecorator_${{ needs.release.outputs.tag }}.zip RaidTeamDecorator -x "RaidTeamDecorator/.git/*" "RaidTeamDecorator/.github/*"
 
     - name: Upload
       env:
@@ -67,7 +67,7 @@ jobs:
         GH_REPO: ${{ github.repository }}
       run: |
         cd ../
-        gh release upload "${{ needs.release.outputs.tag }}" "RaidTeamDecorator${{ needs.release.outputs.tag }}.zip"
+        gh release upload "${{ needs.release.outputs.tag }}" "RaidTeamDecorator_${{ needs.release.outputs.tag }}.zip"
 
   publish:
     name: Publish Release
