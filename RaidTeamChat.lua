@@ -37,6 +37,9 @@ local defaults = {
 -- Global cache for raid team data
 RaidTeamCache = {}
 
+-- Flag to prevent multiple simultaneous UpdateChatHooks calls
+local updatingChatHooks = false
+
 -- Configuration options
 local options = {
     name = "Raid Team Chat",
@@ -156,18 +159,20 @@ function RaidTeamChat:OnInitialize()
     -- Register slash commands
     self:RegisterChatCommand("rtc", "SlashCommand")
     self:RegisterChatCommand("raidteamchat", "SlashCommand")
-    
-    self:DebugPrint("RaidTeamChat initialized")
 end
 
 function RaidTeamChat:OnEnable()
     self:RegisterEvent("ADDON_LOADED", "OnAddonLoaded")
     self:RegisterEvent("PLAYER_LOGIN", "OnPlayerLogin")
-    self:RegisterEvent("GUILD_ROSTER_UPDATE", "OnGuildRosterUpdate")
     
-    -- Wait for GRM to load
+    -- Initialize GRM if already loaded
     if IsAddOnLoaded("Guild_Roster_Manager") then
         self:InitializeGRM()
+    end
+    
+    -- Set up chat hooks if enabled
+    if self.db.profile.enabled then
+        self:UpdateChatHooks()
     end
 end
 
@@ -185,17 +190,36 @@ end
 function RaidTeamChat:OnPlayerLogin()
     self:DebugPrint("Player logged in")
     if self.db.profile.enabled then
-        self:RefreshRaidTeamCache()
         self:UpdateChatHooks()
+        
+        -- Schedule initial cache refresh after a delay using frame
+        self:DebugPrint("Scheduling delayed cache refresh...")
+        local frame = CreateFrame("Frame")
+        frame:SetScript("OnUpdate", function(self, elapsed)
+            self.timer = (self.timer or 0) + elapsed
+            if self.timer >= 2 then
+                self:SetScript("OnUpdate", nil)
+                RaidTeamChat:DelayedInitialRefresh()
+                self:Hide()
+            end
+        end)
+        self:DebugPrint("Frame timer created successfully")
+    else
+        self:DebugPrint("Addon not enabled, skipping cache refresh")
     end
 end
 
-function RaidTeamChat:OnGuildRosterUpdate()
-    self:DebugPrint("Guild roster updated")
-    if self.db.profile.enabled then
+function RaidTeamChat:DelayedInitialRefresh()
+    self:DebugPrint("DelayedInitialRefresh function called!")
+    self:DebugPrint("Running delayed initial cache refresh")
+    if self.db.profile.enabled and GRM_API then
         self:RefreshRaidTeamCache()
+    else
+        self:DebugPrint("Skipping cache refresh - enabled: " .. tostring(self.db.profile.enabled) .. ", GRM_API: " .. tostring(GRM_API ~= nil))
     end
 end
+
+
 
 function RaidTeamChat:InitializeGRM()
     if not GRM_API then
@@ -203,27 +227,50 @@ function RaidTeamChat:InitializeGRM()
         return false
     end
     
+    self:Print("RaidTeamChat: Guild Roster Manager loaded successfully")
     self:DebugPrint("GRM API initialized")
     return true
 end
 
 function RaidTeamChat:SlashCommand(input)
-    if not input or input == "" then
-        InterfaceOptionsFrame_OpenToCategory("Raid Team Chat")
-        return
+    local success, err = pcall(function()
+        if not input or input == "" then
+            self:ShowSettings()
+            return
+        end
+        
+        local command = string.lower(input)
+        
+        if command == "refresh" then
+            self:RefreshRaidTeamCache()
+            self:Print("Raid team cache refreshed!")
+        elseif command == "status" then
+            self:PrintStatus()
+        elseif command == "config" or command == "settings" then
+            self:ShowSettings()
+        elseif command == "toggle" then
+            self.db.profile.enabled = not self.db.profile.enabled
+            self:UpdateChatHooks()
+            self:Print("Raid Team Chat " .. (self.db.profile.enabled and "enabled" or "disabled"))
+        elseif command == "debug" then
+            self.db.profile.debugMode = not self.db.profile.debugMode
+            self:Print("Debug mode " .. (self.db.profile.debugMode and "enabled" or "disabled"))
+        else
+            self:Print("Usage: /rtc [refresh|status|config|toggle|debug]")
+        end
+    end)
+    
+    if not success then
+        self:Print("|cffFF0000Error in slash command:|r " .. tostring(err))
     end
-    
-    local command = string.lower(input)
-    
-    if command == "refresh" then
-        self:RefreshRaidTeamCache()
-        self:Print("Raid team cache refreshed!")
-    elseif command == "status" then
-        self:PrintStatus()
-    elseif command == "config" or command == "settings" then
-        InterfaceOptionsFrame_OpenToCategory("Raid Team Chat")
+end
+
+function RaidTeamChat:ShowSettings()
+    if Settings and Settings.OpenToCategory then
+        Settings.OpenToCategory("Raid Team Chat")
     else
-        self:Print("Usage: /rtc [refresh|status|config]")
+        -- Fallback for older versions
+        InterfaceOptionsFrame_OpenToCategory("Raid Team Chat")
     end
 end
 
@@ -233,6 +280,21 @@ function RaidTeamChat:PrintStatus()
     self:Print("Debug Mode: " .. (self.db.profile.debugMode and "On" or "Off"))
     self:Print("Cached Players: " .. self:GetCacheSize())
     self:Print("GRM Available: " .. (GRM_API and "Yes" or "No"))
+    self:Print("In Guild: " .. (IsInGuild() and "Yes" or "No"))
+    
+    if GRM_API then
+        self:Print("GRM Functions:")
+        self:Print("  GetMember: " .. (GRM_API.GetMember and "Yes" or "No"))
+        self:Print("  IsGuildMember: " .. (GRM_API.IsGuildMember and "Yes" or "No"))
+        self:Print("  GetMemberAlts: " .. (GRM_API.GetMemberAlts and "Yes" or "No"))
+    end
+    
+    if IsInGuild() then
+        local guildName = GetGuildInfo("player")
+        local numMembers = GetNumGuildMembers()
+        self:Print("Guild: " .. (guildName or "Unknown"))
+        self:Print("Members: " .. numMembers)
+    end
 end
 
 function RaidTeamChat:GetCacheSize()
@@ -301,13 +363,26 @@ function RaidTeamChat:GetColoredRaidTeam(teamString)
 end
 
 function RaidTeamChat:RefreshRaidTeamCache()
+    self:DebugPrint("Starting cache refresh...")
+    
     if not IsInGuild() then
         self:DebugPrint("Not in a guild, skipping cache refresh")
+        self:Print("|cffFF0000Error:|r You must be in a guild to use RaidTeamChat")
         return
     end
     
     if not GRM_API then
         self:DebugPrint("GRM API not available, skipping cache refresh")
+        self:Print("|cffFF0000Error:|r Guild Roster Manager (GRM) not found or API not available")
+        return
+    end
+    
+    self:DebugPrint("GRM API found, checking functions...")
+    
+    -- Test GRM API functions
+    if not GRM_API.GetMember then
+        self:DebugPrint("GRM_API.GetMember not available")
+        self:Print("|cffFF0000Error:|r GRM API missing GetMember function")
         return
     end
     
@@ -322,50 +397,79 @@ function RaidTeamChat:RefreshRaidTeamCache()
     local guildName = GetGuildInfo("player")
     if not guildName then
         self:DebugPrint("Could not get guild name")
+        self:Print("|cffFF0000Error:|r Could not get guild name")
         return
     end
+    
+    self:DebugPrint("Guild name: " .. guildName)
     
     -- Process guild members
     local memberCount = 0
     local raidTeamCount = 0
+    local grmMemberCount = 0
     
     -- Get all guild members
     local numMembers = GetNumGuildMembers()
+    self:DebugPrint("Total guild members: " .. numMembers)
+    
     for i = 1, numMembers do
         local name, rank, rankIndex, level, class, zone, note, officernote, online, status, classFileName, achievementPoints, achievementRank, isMobile, canSoR, repStanding = GetGuildRosterInfo(i)
         
         if name then
             memberCount = memberCount + 1
             
-            -- Get member data from GRM
-            local memberData = GRM_API.GetMember(name, guildName)
-            if memberData and memberData.customNote and memberData.customNote[4] then
-                local raidTeams = self:ParseRaidTeamsFromNote(memberData.customNote[4])
+            -- Get member data from GRM (no guild name needed for public API)
+            local success, memberData = pcall(GRM_API.GetMember, name)
+            if success and memberData then
+                grmMemberCount = grmMemberCount + 1
+                self:DebugPrint("GRM data for " .. name .. ": " .. (memberData and "found" or "nil"))
                 
-                if #raidTeams > 0 then
-                    RaidTeamCache[name] = raidTeams
-                    raidTeamCount = raidTeamCount + 1
-                    self:DebugPrint("Cached " .. name .. ": " .. table.concat(raidTeams, ", "))
+                if memberData.customNote and memberData.customNote[4] then
+                    local customNote = memberData.customNote[4]
+                    self:DebugPrint("Custom note for " .. name .. ": " .. customNote)
+                    
+                    local raidTeams = self:ParseRaidTeamsFromNote(customNote)
+                    
+                    if #raidTeams > 0 then
+                        RaidTeamCache[name] = raidTeams
+                        raidTeamCount = raidTeamCount + 1
+                        self:DebugPrint("Cached " .. name .. ": " .. table.concat(raidTeams, ", "))
+                    else
+                        self:DebugPrint("No raid teams found in note for " .. name)
+                    end
+                else
+                    self:DebugPrint("No custom note for " .. name)
                 end
                 
                 -- Handle alt group propagation
                 if memberData.altGroup and memberData.altGroup ~= "" then
-                    self:ProcessAltGroup(name, memberData.altGroup, guildName)
+                    self:ProcessAltGroup(name, memberData.altGroup)
                 end
+            else
+                self:DebugPrint("Failed to get GRM data for " .. name)
             end
         end
     end
     
-    self:DebugPrint(string.format("Cache refresh complete: %d members processed, %d with raid teams", memberCount, raidTeamCount))
+    self:DebugPrint(string.format("Cache refresh complete: %d members processed, %d GRM members found, %d with raid teams", memberCount, grmMemberCount, raidTeamCount))
+    
+    if raidTeamCount == 0 then
+        self:Print("|cffFFFF00Warning:|r No raid teams found. Check that:")
+        self:Print("1. GRM custom notes contain raid team info (RT1, RT2, etc.)")
+        self:Print("2. You have permission to read custom notes")
+        self:Print("3. GRM is properly configured")
+    else
+        self:Print("RaidTeamChat: Cache populated with " .. raidTeamCount .. " players with raid teams")
+    end
 end
 
-function RaidTeamChat:ProcessAltGroup(playerName, altGroup, guildName)
+function RaidTeamChat:ProcessAltGroup(playerName, altGroup)
     if not altGroup or altGroup == "" then
         return
     end
     
     -- Get all alts in the group
-    local alts = GRM_API.GetMemberAlts(playerName, guildName)
+    local alts = GRM_API.GetMemberAlts(playerName)
     if not alts or #alts == 0 then
         return
     end
@@ -386,7 +490,7 @@ function RaidTeamChat:ProcessAltGroup(playerName, altGroup, guildName)
     
     -- Add alt raid teams
     for _, altName in ipairs(alts) do
-        local altData = GRM_API.GetMember(altName, guildName)
+        local altData = GRM_API.GetMember(altName)
         if altData and altData.customNote and altData.customNote[4] then
             local altRaidTeams = self:ParseRaidTeamsFromNote(altData.customNote[4])
             for _, team in ipairs(altRaidTeams) do
@@ -417,10 +521,17 @@ function RaidTeamChat:GetPlayerRaidTeams(playerName)
 end
 
 function RaidTeamChat:UpdateChatHooks()
+    -- Prevent multiple simultaneous calls
+    if updatingChatHooks then
+        return
+    end
+    updatingChatHooks = true
+    
     -- Unhook all existing hooks
     self:UnhookAll()
     
     if not self.db.profile.enabled then
+        updatingChatHooks = false
         return
     end
     
@@ -440,6 +551,7 @@ function RaidTeamChat:UpdateChatHooks()
     for _, event in ipairs(events) do
         self:RegisterEvent(event, "ChatMessageFilter")
     end
+    updatingChatHooks = false
 end
 
 function RaidTeamChat:ChatMessageFilter(event, msg, sender, ...)
