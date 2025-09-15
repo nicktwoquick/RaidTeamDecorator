@@ -1,4 +1,4 @@
-# Raid Team Chat
+# Raid Team Decorator
 
 A World of Warcraft addon that displays raid team information in chat messages by integrating with Guild Roster Manager (GRM).
 
@@ -55,16 +55,16 @@ The addon recognizes these patterns in GRM custom notes:
 
 ### Slash Commands
 
-- `/rtc` or `/raidteamchat` - Open settings panel
-- `/rtc refresh` - Manually refresh the raid team cache
-- `/rtc status` - Show current addon status
-- `/rtc config` - Open settings panel
+- `/rtd` or `/raidteamdecorator` - Open settings panel
+- `/rtd refresh` - Manually refresh the raid team cache
+- `/rtd status` - Show current addon status
+- `/rtd config` - Open settings panel
 
 ### Settings
 
 Access settings through:
-- Interface Options → AddOns → Raid Team Chat
-- Slash command `/rtc`
+- Interface Options → AddOns → Raid Team Decorator
+- Slash command `/rtd`
 
 Available settings:
 - **Enable Raid Team Chat**: Turn the feature on/off
@@ -100,7 +100,7 @@ If a player is in an alt group in GRM:
 1. Check that Guild Roster Manager is installed and enabled
 2. Verify you're in a guild
 3. Enable debug mode to see diagnostic messages
-4. Try manually refreshing the cache with `/rtc refresh`
+4. Try manually refreshing the cache with `/rtd refresh`
 
 ### No Raid Teams Showing
 
@@ -119,7 +119,7 @@ Enable debug mode in settings to see:
 
 ## Configuration
 
-The addon uses Ace3's configuration system and stores settings in the `RaidTeamChatDB` saved variable.
+The addon uses Ace3's configuration system and stores settings in the `RaidTeamDecoratorDB` saved variable.
 
 ### Default Settings
 
@@ -153,7 +153,7 @@ The addon uses Ace3's configuration system and stores settings in the `RaidTeamC
 
 For issues or questions:
 1. Enable debug mode and check for error messages
-2. Use `/rtc status` to verify addon state
+2. Use `/rtd status` to verify addon state
 3. Check that GRM is working properly
 4. Verify raid team format in custom notes
 

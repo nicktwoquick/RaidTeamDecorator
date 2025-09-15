@@ -1,7 +1,7 @@
--- RaidTeamChat - Displays raid team information in chat messages
+-- RaidTeamDecorator - Displays raid team information in chat messages
 -- Integrates with Guild Roster Manager (GRM) to show raid team tags
 
-local RaidTeamChat = LibStub("AceAddon-3.0"):NewAddon("RaidTeamChat", "AceConsole-3.0", "AceEvent-3.0")
+local RaidTeamDecorator = LibStub("AceAddon-3.0"):NewAddon("RaidTeamDecorator", "AceConsole-3.0", "AceEvent-3.0")
 local AceConfig = LibStub("AceConfig-3.0")
 local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 
@@ -45,18 +45,18 @@ local chatFilterFunctions = {}
 
 -- Configuration options
 local options = {
-    name = "Raid Team Chat",
-    handler = RaidTeamChat,
+    name = "Raid Team Decorator",
+    handler = RaidTeamDecorator,
     type = "group",
     args = {
         enabled = {
             type = "toggle",
-            name = "Enable Raid Team Chat",
+            name = "Enable Raid Team Decorator",
             desc = "Turn raid team chat decoration on or off",
-            get = function() return RaidTeamChat.db.profile.enabled end,
+            get = function() return RaidTeamDecorator.db.profile.enabled end,
             set = function(info, value)
-                RaidTeamChat.db.profile.enabled = value
-                RaidTeamChat:UpdateChatHooks()
+                RaidTeamDecorator.db.profile.enabled = value
+                RaidTeamDecorator:UpdateChatHooks()
             end,
             order = 1,
         },
@@ -64,9 +64,9 @@ local options = {
             type = "toggle",
             name = "Debug Mode",
             desc = "Enable debug messages",
-            get = function() return RaidTeamChat.db.profile.debugMode end,
+            get = function() return RaidTeamDecorator.db.profile.debugMode end,
             set = function(info, value)
-                RaidTeamChat.db.profile.debugMode = value
+                RaidTeamDecorator.db.profile.debugMode = value
             end,
             order = 2,
         },
@@ -80,9 +80,9 @@ local options = {
                     type = "toggle",
                     name = "Guild Chat",
                     desc = "Show raid teams in guild chat",
-                    get = function() return RaidTeamChat.db.profile.showInGuild end,
+                    get = function() return RaidTeamDecorator.db.profile.showInGuild end,
                     set = function(info, value)
-                        RaidTeamChat.db.profile.showInGuild = value
+                        RaidTeamDecorator.db.profile.showInGuild = value
                     end,
                     order = 1,
                 },
@@ -90,9 +90,9 @@ local options = {
                     type = "toggle",
                     name = "Officer Chat",
                     desc = "Show raid teams in officer chat",
-                    get = function() return RaidTeamChat.db.profile.showInOfficer end,
+                    get = function() return RaidTeamDecorator.db.profile.showInOfficer end,
                     set = function(info, value)
-                        RaidTeamChat.db.profile.showInOfficer = value
+                        RaidTeamDecorator.db.profile.showInOfficer = value
                     end,
                     order = 2,
                 },
@@ -100,9 +100,9 @@ local options = {
                     type = "toggle",
                     name = "Party Chat",
                     desc = "Show raid teams in party chat",
-                    get = function() return RaidTeamChat.db.profile.showInParty end,
+                    get = function() return RaidTeamDecorator.db.profile.showInParty end,
                     set = function(info, value)
-                        RaidTeamChat.db.profile.showInParty = value
+                        RaidTeamDecorator.db.profile.showInParty = value
                     end,
                     order = 3,
                 },
@@ -110,9 +110,9 @@ local options = {
                     type = "toggle",
                     name = "Raid Chat",
                     desc = "Show raid teams in raid chat",
-                    get = function() return RaidTeamChat.db.profile.showInRaid end,
+                    get = function() return RaidTeamDecorator.db.profile.showInRaid end,
                     set = function(info, value)
-                        RaidTeamChat.db.profile.showInRaid = value
+                        RaidTeamDecorator.db.profile.showInRaid = value
                     end,
                     order = 4,
                 },
@@ -120,9 +120,9 @@ local options = {
                     type = "toggle",
                     name = "Whisper",
                     desc = "Show raid teams in whisper messages",
-                    get = function() return RaidTeamChat.db.profile.showInWhisper end,
+                    get = function() return RaidTeamDecorator.db.profile.showInWhisper end,
                     set = function(info, value)
-                        RaidTeamChat.db.profile.showInWhisper = value
+                        RaidTeamDecorator.db.profile.showInWhisper = value
                     end,
                     order = 5,
                 },
@@ -130,9 +130,9 @@ local options = {
                     type = "toggle",
                     name = "Instance Chat",
                     desc = "Show raid teams in instance chat",
-                    get = function() return RaidTeamChat.db.profile.showInInstance end,
+                    get = function() return RaidTeamDecorator.db.profile.showInInstance end,
                     set = function(info, value)
-                        RaidTeamChat.db.profile.showInInstance = value
+                        RaidTeamDecorator.db.profile.showInInstance = value
                     end,
                     order = 6,
                 },
@@ -143,28 +143,28 @@ local options = {
             name = "Refresh Cache",
             desc = "Manually refresh the raid team cache",
             func = function()
-                RaidTeamChat:RefreshRaidTeamCache()
-                RaidTeamChat:Print("Raid team cache refreshed!")
+                RaidTeamDecorator:RefreshRaidTeamCache()
+                RaidTeamDecorator:Print("Raid team cache refreshed!")
             end,
             order = 4,
         },
     },
 }
 
-function RaidTeamChat:OnInitialize()
+function RaidTeamDecorator:OnInitialize()
     -- Initialize database
     self.db = LibStub("AceDB-3.0"):New("RaidTeamDecoratorDB", {profile = defaults}, true)
     
     -- Register configuration
-    AceConfig:RegisterOptionsTable("RaidTeamChat", options)
-    AceConfigDialog:AddToBlizOptions("RaidTeamChat", "Raid Team Chat")
+    AceConfig:RegisterOptionsTable("RaidTeamDecorator", options)
+    AceConfigDialog:AddToBlizOptions("RaidTeamDecorator", "Raid Team Decorator")
     
     -- Register slash commands
-    self:RegisterChatCommand("rtc", "SlashCommand")
-    self:RegisterChatCommand("raidteamchat", "SlashCommand")
+    self:RegisterChatCommand("rtd", "SlashCommand")
+    self:RegisterChatCommand("raidteamdecorator", "SlashCommand")
 end
 
-function RaidTeamChat:OnEnable()
+function RaidTeamDecorator:OnEnable()
     self:RegisterEvent("ADDON_LOADED", "OnAddonLoaded")
     self:RegisterEvent("PLAYER_LOGIN", "OnPlayerLogin")
     
@@ -179,12 +179,12 @@ function RaidTeamChat:OnEnable()
     end
 end
 
-function RaidTeamChat:OnDisable()
+function RaidTeamDecorator:OnDisable()
     self:UnregisterAllEvents()
     self:UnhookAll()
 end
 
-function RaidTeamChat:UnhookAll()
+function RaidTeamDecorator:UnhookAll()
     -- Remove all chat filters using stored function references
     for filter, filterFunc in pairs(chatFilterFunctions) do
         ChatFrame_RemoveMessageEventFilter(filter, filterFunc)
@@ -194,13 +194,13 @@ function RaidTeamChat:UnhookAll()
     chatFilterFunctions = {}
 end
 
-function RaidTeamChat:OnAddonLoaded(event, addonName)
+function RaidTeamDecorator:OnAddonLoaded(event, addonName)
     if addonName == "Guild_Roster_Manager" then
         self:InitializeGRM()
     end
 end
 
-function RaidTeamChat:OnPlayerLogin()
+function RaidTeamDecorator:OnPlayerLogin()
     self:DebugPrint("Player logged in")
     if self.db.profile.enabled then
         self:UpdateChatHooks()
@@ -212,7 +212,7 @@ function RaidTeamChat:OnPlayerLogin()
             self.timer = (self.timer or 0) + elapsed
             if self.timer >= 2 then
                 self:SetScript("OnUpdate", nil)
-                RaidTeamChat:DelayedInitialRefresh()
+                RaidTeamDecorator:DelayedInitialRefresh()
                 self:Hide()
             end
         end)
@@ -222,7 +222,7 @@ function RaidTeamChat:OnPlayerLogin()
     end
 end
 
-function RaidTeamChat:DelayedInitialRefresh()
+function RaidTeamDecorator:DelayedInitialRefresh()
     self:DebugPrint("DelayedInitialRefresh function called!")
     self:DebugPrint("Running delayed initial cache refresh")
     if self.db.profile.enabled and GRM_API then
@@ -234,18 +234,18 @@ end
 
 
 
-function RaidTeamChat:InitializeGRM()
+function RaidTeamDecorator:InitializeGRM()
     if not GRM_API then
         self:Print("Guild Roster Manager not found or API not available")
         return false
     end
     
-    self:Print("RaidTeamChat: Guild Roster Manager loaded successfully")
+    self:Print("RaidTeamDecorator: Guild Roster Manager loaded successfully")
     self:DebugPrint("GRM API initialized")
     return true
 end
 
-function RaidTeamChat:SlashCommand(input)
+function RaidTeamDecorator:SlashCommand(input)
     local success, err = pcall(function()
         if not input or input == "" then
             self:ShowSettings()
@@ -264,7 +264,7 @@ function RaidTeamChat:SlashCommand(input)
         elseif command == "toggle" then
             self.db.profile.enabled = not self.db.profile.enabled
             self:UpdateChatHooks()
-            self:Print("Raid Team Chat " .. (self.db.profile.enabled and "enabled" or "disabled"))
+            self:Print("Raid Team Decorator " .. (self.db.profile.enabled and "enabled" or "disabled"))
         elseif command == "debug" then
             self.db.profile.debugMode = not self.db.profile.debugMode
             self:Print("Debug mode " .. (self.db.profile.debugMode and "enabled" or "disabled"))
@@ -280,7 +280,7 @@ function RaidTeamChat:SlashCommand(input)
             self:Print("Testing chat filter function...")
             self:ChatMessageFilter("CHAT_MSG_WHISPER", "test message", "Mcfaithful")
         else
-            self:Print("Usage: /rtc [refresh|status|config|toggle|debug|channels|test]")
+            self:Print("Usage: /rtd [refresh|status|config|toggle|debug|channels|test]")
         end
     end)
     
@@ -289,18 +289,18 @@ function RaidTeamChat:SlashCommand(input)
     end
 end
 
-function RaidTeamChat:ShowSettings()
+function RaidTeamDecorator:ShowSettings()
     if Settings and Settings.OpenToCategory then
-        Settings.OpenToCategory("Raid Team Chat")
+        Settings.OpenToCategory("Raid Team Decorator")
     else
         -- Fallback for older versions
-        InterfaceOptionsFrame_OpenToCategory("Raid Team Chat")
+        InterfaceOptionsFrame_OpenToCategory("Raid Team Decorator")
     end
 end
 
-function RaidTeamChat:PrintStatus()
+function RaidTeamDecorator:PrintStatus()
     local status = self.db.profile.enabled and "Enabled" or "Disabled"
-    self:Print("Raid Team Chat: " .. status)
+    self:Print("Raid Team Decorator: " .. status)
     self:Print("Debug Mode: " .. (self.db.profile.debugMode and "On" or "Off"))
     self:Print("Cached Players: " .. self:GetCacheSize())
     self:Print("GRM Available: " .. (GRM_API and "Yes" or "No"))
@@ -334,7 +334,7 @@ function RaidTeamChat:PrintStatus()
     end
 end
 
-function RaidTeamChat:GetCacheSize()
+function RaidTeamDecorator:GetCacheSize()
     local count = 0
     for _ in pairs(RaidTeamCache) do
         count = count + 1
@@ -342,13 +342,13 @@ function RaidTeamChat:GetCacheSize()
     return count
 end
 
-function RaidTeamChat:DebugPrint(message)
+function RaidTeamDecorator:DebugPrint(message)
     if self.db.profile.debugMode then
         self:Print("|cff00FF00[DEBUG]|r " .. message)
     end
 end
 
-function RaidTeamChat:ParseRaidTeamsFromNote(note)
+function RaidTeamDecorator:ParseRaidTeamsFromNote(note)
     if not note or note == "" then
         return {}
     end
@@ -390,7 +390,7 @@ function RaidTeamChat:ParseRaidTeamsFromNote(note)
     return raidTeams
 end
 
-function RaidTeamChat:GetColoredRaidTeam(teamString)
+function RaidTeamDecorator:GetColoredRaidTeam(teamString)
     if not teamString then
         return ""
     end
@@ -399,12 +399,12 @@ function RaidTeamChat:GetColoredRaidTeam(teamString)
     return color .. teamString .. "|r"
 end
 
-function RaidTeamChat:RefreshRaidTeamCache()
+function RaidTeamDecorator:RefreshRaidTeamCache()
     self:DebugPrint("Starting cache refresh...")
     
     if not IsInGuild() then
         self:DebugPrint("Not in a guild, skipping cache refresh")
-        self:Print("|cffFF0000Error:|r You must be in a guild to use RaidTeamChat")
+        self:Print("|cffFF0000Error:|r You must be in a guild to use RaidTeamDecorator")
         return
     end
     
@@ -498,11 +498,11 @@ function RaidTeamChat:RefreshRaidTeamCache()
         self:Print("2. You have permission to read custom notes")
         self:Print("3. GRM is properly configured")
     else
-        self:Print("RaidTeamChat: Cache populated with " .. raidTeamCount .. " players with raid teams")
+        self:Print("RaidTeamDecorator: Cache populated with " .. raidTeamCount .. " players with raid teams")
     end
 end
 
-function RaidTeamChat:ProcessAltGroup(playerName, altGroup)
+function RaidTeamDecorator:ProcessAltGroup(playerName, altGroup)
     if not altGroup or altGroup == "" then
         return
     end
@@ -555,7 +555,7 @@ function RaidTeamChat:ProcessAltGroup(playerName, altGroup)
     end
 end
 
-function RaidTeamChat:GetPlayerRaidTeams(playerName)
+function RaidTeamDecorator:GetPlayerRaidTeams(playerName)
     if not playerName then
         return {}
     end
@@ -574,7 +574,7 @@ function RaidTeamChat:GetPlayerRaidTeams(playerName)
     return {}
 end
 
-function RaidTeamChat:UpdateChatHooks()
+function RaidTeamDecorator:UpdateChatHooks()
     -- Prevent multiple simultaneous calls
     if updatingChatHooks then
         return
@@ -605,7 +605,7 @@ function RaidTeamChat:UpdateChatHooks()
     for _, filter in ipairs(chatFilters) do
         -- Create and store the filter function
         local filterFunc = function(self, event, msg, sender, ...)
-            return RaidTeamChat:ChatMessageFilter(event, msg, sender, ...)
+            return RaidTeamDecorator:ChatMessageFilter(event, msg, sender, ...)
         end
         
         -- Store the function reference for proper cleanup
@@ -617,7 +617,7 @@ function RaidTeamChat:UpdateChatHooks()
     updatingChatHooks = false
 end
 
-function RaidTeamChat:ChatMessageFilter(event, msg, sender, ...)
+function RaidTeamDecorator:ChatMessageFilter(event, msg, sender, ...)
     -- Early exit conditions
     if not IsInGuild() or not GRM_API then
         return false, msg, sender, ...
