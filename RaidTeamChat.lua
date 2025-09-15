@@ -150,7 +150,7 @@ local options = {
 
 function RaidTeamChat:OnInitialize()
     -- Initialize database
-    self.db = LibStub("AceDB-3.0"):New("RaidTeamChatDB", {profile = defaults}, true)
+    self.db = LibStub("AceDB-3.0"):New("RaidTeamDecoratorDB", {profile = defaults}, true)
     
     -- Register configuration
     AceConfig:RegisterOptionsTable("RaidTeamChat", options)
@@ -179,6 +179,27 @@ end
 function RaidTeamChat:OnDisable()
     self:UnregisterAllEvents()
     self:UnhookAll()
+end
+
+function RaidTeamChat:UnhookAll()
+    -- Remove all chat filters
+    local chatFilters = {
+        "CHAT_MSG_GUILD",
+        "CHAT_MSG_OFFICER", 
+        "CHAT_MSG_PARTY",
+        "CHAT_MSG_PARTY_LEADER",
+        "CHAT_MSG_RAID",
+        "CHAT_MSG_RAID_LEADER",
+        "CHAT_MSG_INSTANCE_CHAT",
+        "CHAT_MSG_INSTANCE_CHAT_LEADER",
+        "CHAT_MSG_WHISPER"
+    }
+    
+    for _, filter in ipairs(chatFilters) do
+        ChatFrame_RemoveMessageEventFilter(filter, function(self, event, msg, sender, ...)
+            return RaidTeamChat:ChatMessageFilter(event, msg, sender, ...)
+        end)
+    end
 end
 
 function RaidTeamChat:OnAddonLoaded(event, addonName)
@@ -255,8 +276,19 @@ function RaidTeamChat:SlashCommand(input)
         elseif command == "debug" then
             self.db.profile.debugMode = not self.db.profile.debugMode
             self:Print("Debug mode " .. (self.db.profile.debugMode and "enabled" or "disabled"))
+        elseif command == "channels" then
+            self:Print("Channel Settings:")
+            self:Print("  Guild: " .. (self.db.profile.showInGuild and "ON" or "OFF"))
+            self:Print("  Officer: " .. (self.db.profile.showInOfficer and "ON" or "OFF"))
+            self:Print("  Party: " .. (self.db.profile.showInParty and "ON" or "OFF"))
+            self:Print("  Raid: " .. (self.db.profile.showInRaid and "ON" or "OFF"))
+            self:Print("  Whisper: " .. (self.db.profile.showInWhisper and "ON" or "OFF"))
+            self:Print("  Instance: " .. (self.db.profile.showInInstance and "ON" or "OFF"))
+        elseif command == "test" then
+            self:Print("Testing chat filter function...")
+            self:ChatMessageFilter("CHAT_MSG_WHISPER", "test message", "Mcfaithful")
         else
-            self:Print("Usage: /rtc [refresh|status|config|toggle|debug]")
+            self:Print("Usage: /rtc [refresh|status|config|toggle|debug|channels|test]")
         end
     end)
     
@@ -294,6 +326,19 @@ function RaidTeamChat:PrintStatus()
         local numMembers = GetNumGuildMembers()
         self:Print("Guild: " .. (guildName or "Unknown"))
         self:Print("Members: " .. numMembers)
+    end
+    
+    -- Show cache contents
+    self:Print("Cache Contents:")
+    local count = 0
+    for name, teams in pairs(RaidTeamCache) do
+        count = count + 1
+        if count <= 10 then  -- Limit to first 10 entries
+            self:Print("  '" .. name .. "': " .. table.concat(teams, ", "))
+        end
+    end
+    if count > 10 then
+        self:Print("  ... and " .. (count - 10) .. " more entries")
     end
 end
 
@@ -431,9 +476,11 @@ function RaidTeamChat:RefreshRaidTeamCache()
                     local raidTeams = self:ParseRaidTeamsFromNote(customNote)
                     
                     if #raidTeams > 0 then
-                        RaidTeamCache[name] = raidTeams
+                        -- Strip server name from the player name for consistent storage
+                        local playerNameOnly = string.match(name, "^([^-]+)")
+                        RaidTeamCache[playerNameOnly] = raidTeams
                         raidTeamCount = raidTeamCount + 1
-                        self:DebugPrint("Cached " .. name .. ": " .. table.concat(raidTeams, ", "))
+                        self:DebugPrint("Cached '" .. playerNameOnly .. "' (from '" .. name .. "'): " .. table.concat(raidTeams, ", "))
                     else
                         self:DebugPrint("No raid teams found in note for " .. name)
                     end
@@ -479,8 +526,9 @@ function RaidTeamChat:ProcessAltGroup(playerName, altGroup)
     local raidTeamSet = {}
     
     -- Add current player's raid teams
-    if RaidTeamCache[playerName] then
-        for _, team in ipairs(RaidTeamCache[playerName]) do
+    local playerNameOnly = string.match(playerName, "^([^-]+)")
+    if RaidTeamCache[playerNameOnly] then
+        for _, team in ipairs(RaidTeamCache[playerNameOnly]) do
             if not raidTeamSet[team] then
                 table.insert(allRaidTeams, team)
                 raidTeamSet[team] = true
@@ -504,9 +552,12 @@ function RaidTeamChat:ProcessAltGroup(playerName, altGroup)
     
     -- Apply merged raid teams to all alts
     if #allRaidTeams > 0 then
-        RaidTeamCache[playerName] = allRaidTeams
+        -- Strip server names for consistent storage
+        local playerNameOnly = string.match(playerName, "^([^-]+)")
+        RaidTeamCache[playerNameOnly] = allRaidTeams
         for _, altName in ipairs(alts) do
-            RaidTeamCache[altName] = allRaidTeams
+            local altNameOnly = string.match(altName, "^([^-]+)")
+            RaidTeamCache[altNameOnly] = allRaidTeams
         end
         self:DebugPrint(string.format("Alt group %s: %d raid teams applied to %d characters", altGroup, #allRaidTeams, #alts + 1))
     end
@@ -535,8 +586,8 @@ function RaidTeamChat:UpdateChatHooks()
         return
     end
     
-    -- Hook chat events
-    local events = {
+    -- Hook chat filters instead of events
+    local chatFilters = {
         "CHAT_MSG_GUILD",
         "CHAT_MSG_OFFICER", 
         "CHAT_MSG_PARTY",
@@ -548,13 +599,16 @@ function RaidTeamChat:UpdateChatHooks()
         "CHAT_MSG_WHISPER"
     }
     
-    for _, event in ipairs(events) do
-        self:RegisterEvent(event, "ChatMessageFilter")
+    for _, filter in ipairs(chatFilters) do
+        ChatFrame_AddMessageEventFilter(filter, function(self, event, msg, sender, ...)
+            return RaidTeamChat:ChatMessageFilter(event, msg, sender, ...)
+        end)
     end
     updatingChatHooks = false
 end
 
 function RaidTeamChat:ChatMessageFilter(event, msg, sender, ...)
+    -- Early exit conditions
     if not IsInGuild() or not GRM_API then
         return false, msg, sender, ...
     end
@@ -562,6 +616,35 @@ function RaidTeamChat:ChatMessageFilter(event, msg, sender, ...)
     -- Don't modify own messages
     if sender == UnitName("player") then
         return false, msg, sender, ...
+    end
+    
+    -- Explicitly exclude public channels that should never be processed
+    local excludedEvents = {
+        "CHAT_MSG_CHANNEL",      -- General channels (including trade)
+        "CHAT_MSG_SAY",          -- Say
+        "CHAT_MSG_YELL",         -- Yell
+        "CHAT_MSG_EMOTE",        -- Emote
+        "CHAT_MSG_TEXT_EMOTE",   -- Text emote
+        "CHAT_MSG_SYSTEM",       -- System messages
+        "CHAT_MSG_LOOT",         -- Loot messages
+        "CHAT_MSG_MONEY",        -- Money messages
+        "CHAT_MSG_ACHIEVEMENT",  -- Achievement messages
+        "CHAT_MSG_COMBAT_XP_GAIN", -- XP gain messages
+        "CHAT_MSG_SKILL",        -- Skill messages
+        "CHAT_MSG_OPENING",      -- Opening messages
+        "CHAT_MSG_TRADESKILLS",  -- Tradeskill messages
+        "CHAT_MSG_PET_INFO",     -- Pet info messages
+        "CHAT_MSG_COMBAT_MISC_INFO", -- Combat misc messages
+        "CHAT_MSG_COMBAT_FACTION_CHANGE", -- Faction change messages
+        "CHAT_MSG_BG_SYSTEM_NEUTRAL", -- BG system messages
+        "CHAT_MSG_BG_SYSTEM_ALLIANCE", -- BG system messages
+        "CHAT_MSG_BG_SYSTEM_HORDE", -- BG system messages
+    }
+    
+    for _, excludedEvent in ipairs(excludedEvents) do
+        if event == excludedEvent then
+            return false, msg, sender, ...
+        end
     end
     
     -- Check if this channel is enabled
@@ -584,19 +667,54 @@ function RaidTeamChat:ChatMessageFilter(event, msg, sender, ...)
         return false, msg, sender, ...
     end
     
-    -- Get raid teams for sender
-    local raidTeams = self:GetPlayerRaidTeams(sender)
+    -- Debug: Log the sender name and check cache
+    self:DebugPrint("Processing chat message - Event: " .. event .. ", Sender: '" .. sender .. "'")
+    self:DebugPrint("Cache lookup for '" .. sender .. "': " .. (RaidTeamCache[sender] and "FOUND" or "NOT FOUND"))
+    
+    -- Try to find the player in cache with different name formats
+    local success, raidTeams = pcall(function() return self:GetPlayerRaidTeams(sender) end)
+    if not success then
+        self:Print("|cffFF0000[ERROR]|r GetPlayerRaidTeams failed: " .. tostring(raidTeams))
+        return false, msg, sender, ...
+    end
+    
+    -- If not found, try to find by partial match (strip server suffixes from cached names)
+    if #raidTeams == 0 then
+        local success2, err2 = pcall(function()
+            for cachedName, cachedTeams in pairs(RaidTeamCache) do
+                local cachedPlayerName = string.match(cachedName, "^([^-]+)")
+                if cachedPlayerName == sender then
+                    self:DebugPrint("Found partial match: '" .. cachedName .. "' matches '" .. sender .. "'")
+                    raidTeams = cachedTeams
+                    break
+                end
+            end
+        end)
+        if not success2 then
+            self:Print("|cffFF0000[ERROR]|r Partial match loop failed: " .. tostring(err2))
+            return false, msg, sender, ...
+        end
+    end
     
     if #raidTeams > 0 then
-        -- Create colored raid team prefix
-        local coloredTeams = {}
-        for _, team in ipairs(raidTeams) do
-            table.insert(coloredTeams, self:GetColoredRaidTeam(team))
+        local success3, err3 = pcall(function()
+            -- Create colored raid team prefix
+            local coloredTeams = {}
+            for _, team in ipairs(raidTeams) do
+                table.insert(coloredTeams, self:GetColoredRaidTeam(team))
+            end
+            local raidTeamPrefix = "[" .. table.concat(coloredTeams, ",") .. "]: "
+            
+            -- Prepend to message
+            msg = raidTeamPrefix .. msg
+            self:DebugPrint("Applied raid team prefix: " .. raidTeamPrefix)
+        end)
+        if not success3 then
+            self:Print("|cffFF0000[ERROR]|r Message processing failed: " .. tostring(err3))
+            return false, msg, sender, ...
         end
-        local raidTeamPrefix = "[" .. table.concat(coloredTeams, ",") .. "]: "
-        
-        -- Prepend to message
-        msg = raidTeamPrefix .. msg
+    else
+        self:DebugPrint("No raid teams found for sender: " .. sender)
     end
     
     return false, msg, sender, ...
