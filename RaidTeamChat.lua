@@ -564,11 +564,22 @@ function RaidTeamChat:ProcessAltGroup(playerName, altGroup)
 end
 
 function RaidTeamChat:GetPlayerRaidTeams(playerName)
-    if not playerName or not RaidTeamCache[playerName] then
+    if not playerName then
         return {}
     end
     
-    return RaidTeamCache[playerName]
+    -- First try exact match (for names without realm)
+    if RaidTeamCache[playerName] then
+        return RaidTeamCache[playerName]
+    end
+    
+    -- If not found, try stripping realm name (for names like "PlayerName-Realm")
+    local playerNameOnly = string.match(playerName, "^([^-]+)")
+    if playerNameOnly and playerNameOnly ~= playerName and RaidTeamCache[playerNameOnly] then
+        return RaidTeamCache[playerNameOnly]
+    end
+    
+    return {}
 end
 
 function RaidTeamChat:UpdateChatHooks()
@@ -667,47 +678,52 @@ function RaidTeamChat:ChatMessageFilter(event, msg, sender, ...)
         return false, msg, sender, ...
     end
     
-    -- Debug: Log the sender name and check cache
+    -- Debug: Log the sender name
     self:DebugPrint("Processing chat message - Event: " .. event .. ", Sender: '" .. sender .. "'")
-    self:DebugPrint("Cache lookup for '" .. sender .. "': " .. (RaidTeamCache[sender] and "FOUND" or "NOT FOUND"))
     
-    -- Try to find the player in cache with different name formats
+    -- Get raid teams for the sender (handles realm name stripping internally)
     local success, raidTeams = pcall(function() return self:GetPlayerRaidTeams(sender) end)
     if not success then
         self:Print("|cffFF0000[ERROR]|r GetPlayerRaidTeams failed: " .. tostring(raidTeams))
         return false, msg, sender, ...
     end
     
-    -- If not found, try to find by partial match (strip server suffixes from cached names)
-    if #raidTeams == 0 then
-        local success2, err2 = pcall(function()
-            for cachedName, cachedTeams in pairs(RaidTeamCache) do
-                local cachedPlayerName = string.match(cachedName, "^([^-]+)")
-                if cachedPlayerName == sender then
-                    self:DebugPrint("Found partial match: '" .. cachedName .. "' matches '" .. sender .. "'")
-                    raidTeams = cachedTeams
-                    break
-                end
-            end
-        end)
-        if not success2 then
-            self:Print("|cffFF0000[ERROR]|r Partial match loop failed: " .. tostring(err2))
-            return false, msg, sender, ...
-        end
-    end
+    self:DebugPrint("Raid teams found for '" .. sender .. "': " .. (#raidTeams > 0 and table.concat(raidTeams, ", ") or "none"))
     
     if #raidTeams > 0 then
         local success3, err3 = pcall(function()
-            -- Create colored raid team prefix
-            local coloredTeams = {}
-            for _, team in ipairs(raidTeams) do
-                table.insert(coloredTeams, self:GetColoredRaidTeam(team))
-            end
-            local raidTeamPrefix = "[" .. table.concat(coloredTeams, ",") .. "]: "
+            -- Check if message already has a raid team prefix to prevent duplicates
+            local hasExistingPrefix = false
             
-            -- Prepend to message
-            msg = raidTeamPrefix .. msg
-            self:DebugPrint("Applied raid team prefix: " .. raidTeamPrefix)
+            -- First check for any existing RT pattern in the message
+            if string.find(msg, "%[RT%d+%]:") then
+                hasExistingPrefix = true
+            else
+                -- Also check for colored versions of the current player's teams
+                for _, team in ipairs(raidTeams) do
+                    local coloredTeam = self:GetColoredRaidTeam(team)
+                    if string.find(msg, "[" .. coloredTeam .. "]:", 1, true) then
+                        hasExistingPrefix = true
+                        break
+                    end
+                end
+            end
+            
+            -- Only add prefix if it doesn't already exist
+            if not hasExistingPrefix then
+                -- Create colored raid team prefix
+                local coloredTeams = {}
+                for _, team in ipairs(raidTeams) do
+                    table.insert(coloredTeams, self:GetColoredRaidTeam(team))
+                end
+                local raidTeamPrefix = "[" .. table.concat(coloredTeams, ",") .. "]: "
+                
+                -- Prepend to message
+                msg = raidTeamPrefix .. msg
+                self:DebugPrint("Applied raid team prefix: " .. raidTeamPrefix)
+            else
+                self:DebugPrint("Message already has raid team prefix, skipping")
+            end
         end)
         if not success3 then
             self:Print("|cffFF0000[ERROR]|r Message processing failed: " .. tostring(err3))
