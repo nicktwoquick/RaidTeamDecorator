@@ -157,17 +157,3 @@ For issues or questions:
 3. Check that GRM is working properly
 4. Verify raid team format in custom notes
 
-## Changelog
-
-### Version 1.0.0
-- Initial release
-- Basic raid team parsing and display
-- GRM integration
-- Alt group support
-- Settings panel
-- Slash commands
-- Debug mode
-
-## License
-
-This addon is provided as-is for educational and personal use.
