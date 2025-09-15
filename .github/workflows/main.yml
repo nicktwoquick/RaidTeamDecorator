@@ -25,6 +25,7 @@ jobs:
           tag=$(basename "${{ github.ref }}")
         fi
         echo "tag=$tag" >> $GITHUB_OUTPUT
+    
     - name: Create Release
       env:
         GH_TOKEN: ${{ github.token }}
@@ -50,7 +51,9 @@ jobs:
       env:
         GH_TOKEN: ${{ github.token }}
         GH_REPO: ${{ github.repository }}
-      run: gh release upload "${{ needs.release.outputs.tag }}" "RaidTeamDecorator.zip"
+      run: |
+        cd ../
+        gh release upload "${{ needs.release.outputs.tag }}" "RaidTeamDecorator.zip"
 
   publish:
     name: Publish Release
