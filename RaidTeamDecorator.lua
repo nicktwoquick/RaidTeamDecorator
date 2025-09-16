@@ -250,6 +250,20 @@ function RaidTeamDecorator:OnEnable()
     if self.db.profile.enableTooltips then
         self:UpdateTooltipHooks()
     end
+    
+    -- DEBUG: Check tooltip objects immediately
+    self:DebugPrint("=== TOOLTIP DEBUG INFO ===")
+    self:DebugPrint("GameTooltip exists: " .. tostring(GameTooltip ~= nil))
+    self:DebugPrint("ItemRefTooltip exists: " .. tostring(ItemRefTooltip ~= nil))
+    self:DebugPrint("WorldMapTooltip exists: " .. tostring(WorldMapTooltip ~= nil))
+    if GameTooltip then
+        self:DebugPrint("GameTooltip.SetUnit exists: " .. tostring(GameTooltip.SetUnit ~= nil))
+    end
+    self:DebugPrint("enableTooltips setting: " .. tostring(self.db.profile.enableTooltips))
+    self:DebugPrint("=== END TOOLTIP DEBUG ===")
+    
+    -- Try alternative tooltip hooking method using events
+    self:SetupTooltipEvents()
 end
 
 function RaidTeamDecorator:OnDisable()
@@ -309,10 +323,22 @@ function RaidTeamDecorator:OnPlayerLogin()
         self:DebugPrint("Addon not enabled, skipping cache refresh")
     end
     
-    -- Set up tooltip hooks if enabled
+    -- Set up tooltip hooks if enabled (try immediately)
     if self.db.profile.enableTooltips then
         self:UpdateTooltipHooks()
     end
+    
+    -- Also schedule delayed tooltip hook setup in case tooltips aren't ready yet
+    self:DebugPrint("Scheduling delayed tooltip hook setup...")
+    local tooltipFrame = CreateFrame("Frame")
+    tooltipFrame:SetScript("OnUpdate", function(self, elapsed)
+        self.timer = (self.timer or 0) + elapsed
+        if self.timer >= 3 then
+            self:SetScript("OnUpdate", nil)
+            RaidTeamDecorator:DelayedTooltipSetup()
+            self:Hide()
+        end
+    end)
 end
 
 function RaidTeamDecorator:DelayedInitialRefresh()
@@ -323,6 +349,61 @@ function RaidTeamDecorator:DelayedInitialRefresh()
     else
         self:DebugPrint("Skipping cache refresh - enabled: " .. tostring(self.db.profile.enabled) .. ", GRM_API: " .. tostring(GRM_API ~= nil))
     end
+end
+
+function RaidTeamDecorator:DelayedTooltipSetup()
+    self:DebugPrint("DelayedTooltipSetup function called!")
+    self:DebugPrint("=== DELAYED TOOLTIP DEBUG INFO ===")
+    self:DebugPrint("GameTooltip exists: " .. tostring(GameTooltip ~= nil))
+    self:DebugPrint("ItemRefTooltip exists: " .. tostring(ItemRefTooltip ~= nil))
+    self:DebugPrint("WorldMapTooltip exists: " .. tostring(WorldMapTooltip ~= nil))
+    if GameTooltip then
+        self:DebugPrint("GameTooltip.SetUnit exists: " .. tostring(GameTooltip.SetUnit ~= nil))
+        self:DebugPrint("GameTooltip type: " .. type(GameTooltip))
+    end
+    self:DebugPrint("enableTooltips setting: " .. tostring(self.db.profile.enableTooltips))
+    self:DebugPrint("=== END DELAYED TOOLTIP DEBUG ===")
+    
+    -- Try to set up tooltip hooks again
+    if self.db.profile.enableTooltips then
+        self:DebugPrint("Attempting delayed tooltip hook setup...")
+        self:UpdateTooltipHooks()
+    end
+end
+
+function RaidTeamDecorator:SetupTooltipEvents()
+    self:DebugPrint("SetupTooltipEvents called")
+    
+    if not self.db.profile.enableTooltips then
+        self:DebugPrint("Tooltips disabled, skipping event setup")
+        return
+    end
+    
+    -- Try using tooltip events instead of hooking functions
+    if GameTooltip then
+        self:DebugPrint("Setting up GameTooltip events")
+        
+        -- Use OnTooltipSetUnit event (this was working before)
+        GameTooltip:HookScript("OnTooltipSetUnit", function(self, unit)
+            RaidTeamDecorator:AddRaidTeamToTooltip(self, unit)
+        end)
+    end
+    
+    if ItemRefTooltip then
+        self:DebugPrint("Setting up ItemRefTooltip events")
+        ItemRefTooltip:HookScript("OnTooltipSetUnit", function(self, unit)
+            RaidTeamDecorator:AddRaidTeamToTooltip(self, unit)
+        end)
+    end
+    
+    if WorldMapTooltip then
+        self:DebugPrint("Setting up WorldMapTooltip events")
+        WorldMapTooltip:HookScript("OnTooltipSetUnit", function(self, unit)
+            RaidTeamDecorator:AddRaidTeamToTooltip(self, unit)
+        end)
+    end
+    
+    self:DebugPrint("Tooltip event setup complete")
 end
 
 
@@ -382,8 +463,12 @@ function RaidTeamDecorator:SlashCommand(input)
         elseif command == "test" then
             self:Print("Testing chat filter function...")
             self:ChatMessageFilter("CHAT_MSG_WHISPER", "test message", "Mcfaithful")
+        elseif command == "testtooltip" then
+            self:Print("Testing tooltip setup...")
+            self:SetupTooltipEvents()
+            self:UpdateTooltipHooks()
         else
-            self:Print("Usage: /rtd [refresh|status|config|toggle|debug|tooltips|channels|test]")
+            self:Print("Usage: /rtd [refresh|status|config|toggle|debug|tooltips|channels|test|testtooltip]")
         end
     end)
     
@@ -722,38 +807,59 @@ function RaidTeamDecorator:UpdateChatHooks()
 end
 
 function RaidTeamDecorator:UpdateTooltipHooks()
+    self:DebugPrint("UpdateTooltipHooks called - enableTooltips: " .. tostring(self.db.profile.enableTooltips))
+    
     -- Remove existing tooltip hooks
     self:UnhookTooltips()
     
     if not self.db.profile.enableTooltips then
+        self:DebugPrint("Tooltips disabled, skipping hook setup")
         return
     end
     
+    self:DebugPrint("Setting up tooltip hooks...")
+    
     -- Hook GameTooltip if it exists
     if GameTooltip then
+        self:DebugPrint("Hooking GameTooltip")
         self:HookGameTooltip()
+    else
+        self:DebugPrint("GameTooltip not found")
     end
     
     -- Hook other common tooltips
     if ItemRefTooltip then
+        self:DebugPrint("Hooking ItemRefTooltip")
         self:HookTooltip(ItemRefTooltip)
+    else
+        self:DebugPrint("ItemRefTooltip not found")
     end
     
     if WorldMapTooltip then
+        self:DebugPrint("Hooking WorldMapTooltip")
         self:HookTooltip(WorldMapTooltip)
+    else
+        self:DebugPrint("WorldMapTooltip not found")
     end
+    
+    self:DebugPrint("Tooltip hook setup complete")
 end
 
 function RaidTeamDecorator:HookGameTooltip()
     if not GameTooltip or tooltipHooks[GameTooltip] then
+        self:DebugPrint("GameTooltip hook skipped - already hooked or not available")
         return
     end
+    
+    self:DebugPrint("Hooking GameTooltip.SetUnit")
     
     -- Store the original SetUnit function
     tooltipHooks[GameTooltip] = GameTooltip.SetUnit
     
     -- Create our hook function
     local function TooltipSetUnitHook(self, unit)
+        self:DebugPrint("GameTooltip.SetUnit hook called for unit: " .. (unit or "nil"))
+        
         -- Call the original function first
         if tooltipHooks[GameTooltip] then
             tooltipHooks[GameTooltip](self, unit)
@@ -765,18 +871,24 @@ function RaidTeamDecorator:HookGameTooltip()
     
     -- Replace the SetUnit function
     GameTooltip.SetUnit = TooltipSetUnitHook
+    self:DebugPrint("GameTooltip.SetUnit hook installed successfully")
 end
 
 function RaidTeamDecorator:HookTooltip(tooltip)
     if not tooltip or tooltipHooks[tooltip] then
+        self:DebugPrint("Tooltip hook skipped - already hooked or not available")
         return
     end
+    
+    self:DebugPrint("Hooking tooltip: " .. tostring(tooltip))
     
     -- Store the original SetUnit function
     tooltipHooks[tooltip] = tooltip.SetUnit
     
     -- Create our hook function
     local function TooltipSetUnitHook(self, unit)
+        self:DebugPrint("Tooltip.SetUnit hook called for unit: " .. (unit or "nil"))
+        
         -- Call the original function first
         if tooltipHooks[tooltip] then
             tooltipHooks[tooltip](self, unit)
@@ -788,11 +900,21 @@ function RaidTeamDecorator:HookTooltip(tooltip)
     
     -- Replace the SetUnit function
     tooltip.SetUnit = TooltipSetUnitHook
+    self:DebugPrint("Tooltip.SetUnit hook installed successfully")
 end
 
 function RaidTeamDecorator:AddRaidTeamToTooltip(tooltip, unit)
+    -- If unit is nil, try to get it from the tooltip
+    if not unit and tooltip and tooltip.GetUnit then
+        unit = tooltip:GetUnit()
+    end
+    
     -- Early exit conditions
     if not IsInGuild() or not GRM_API then
+        return
+    end
+    
+    if not unit then
         return
     end
     
@@ -801,19 +923,33 @@ function RaidTeamDecorator:AddRaidTeamToTooltip(tooltip, unit)
         return
     end
     
-    -- Get the unit's name
-    local name = UnitName(unit)
-    if not name then
-        return
+    -- Get the unit's name - try different methods
+    local name = nil
+    
+    -- First, try standard unit tokens
+    if unit == "player" then
+        name = UnitName("player")
+    elseif unit == "target" then
+        name = UnitName("target")
+    elseif unit == "mouseover" then
+        name = UnitName("mouseover")
+    else
+        -- For other cases, try UnitName first
+        name = UnitName(unit)
+        
+        -- If UnitName failed, the unit string might be the name directly
+        if not name then
+            name = unit
+        end
     end
     
-    -- Check if we should show tooltip for this context
-    if not self:ShouldShowTooltipForUnit(unit) then
+    if not name then
         return
     end
     
     -- Get raid teams for this player
     local raidTeams = self:GetPlayerRaidTeams(name)
+    self:DebugPrint("Raid teams found for " .. name .. ": " .. (#raidTeams > 0 and table.concat(raidTeams, ", ") or "none"))
     
     if #raidTeams > 0 then
         -- Add a blank line for spacing
