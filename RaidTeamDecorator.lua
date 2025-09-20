@@ -160,7 +160,8 @@ local options = {
                     get = function() return RaidTeamDecorator.db.profile.enableTooltips end,
                     set = function(info, value)
                         RaidTeamDecorator.db.profile.enableTooltips = value
-                        RaidTeamDecorator:UpdateTooltipHooks()
+                        -- Show reload dialog since HookScript hooks can't be removed dynamically
+                        StaticPopup_Show("RAIDTEAMDECORATOR_RELOAD")
                     end,
                     order = 1,
                 },
@@ -230,6 +231,20 @@ function RaidTeamDecorator:OnInitialize()
     -- Register slash commands
     self:RegisterChatCommand("rtd", "SlashCommand")
     self:RegisterChatCommand("raidteamdecorator", "SlashCommand")
+    
+    -- Define custom reload dialog
+    StaticPopupDialogs["RAIDTEAMDECORATOR_RELOAD"] = {
+        text = "Changing the tooltip setting requires a UI reload. Do you want to reload now?",
+        button1 = "Yes",
+        button2 = "No",
+        OnAccept = function()
+            ReloadUI()
+        end,
+        timeout = 0,
+        whileDead = true,
+        hideOnEscape = true,
+        preferredIndex = 3,
+    }
 end
 
 function RaidTeamDecorator:OnEnable()
@@ -251,19 +266,7 @@ function RaidTeamDecorator:OnEnable()
         self:UpdateTooltipHooks()
     end
     
-    -- DEBUG: Check tooltip objects immediately
-    self:DebugPrint("=== TOOLTIP DEBUG INFO ===")
-    self:DebugPrint("GameTooltip exists: " .. tostring(GameTooltip ~= nil))
-    self:DebugPrint("ItemRefTooltip exists: " .. tostring(ItemRefTooltip ~= nil))
-    self:DebugPrint("WorldMapTooltip exists: " .. tostring(WorldMapTooltip ~= nil))
-    if GameTooltip then
-        self:DebugPrint("GameTooltip.SetUnit exists: " .. tostring(GameTooltip.SetUnit ~= nil))
-    end
-    self:DebugPrint("enableTooltips setting: " .. tostring(self.db.profile.enableTooltips))
-    self:DebugPrint("=== END TOOLTIP DEBUG ===")
-    
-    -- Try alternative tooltip hooking method using events
-    self:SetupTooltipEvents()
+    -- Tooltip hooks are now set up directly in UpdateTooltipHooks()
 end
 
 function RaidTeamDecorator:OnDisable()
@@ -285,14 +288,11 @@ function RaidTeamDecorator:UnhookAll()
 end
 
 function RaidTeamDecorator:UnhookTooltips()
-    -- Remove all tooltip hooks using stored function references
-    for tooltip, originalFunc in pairs(tooltipHooks) do
-        if tooltip and originalFunc then
-            tooltip.SetUnit = originalFunc
-        end
-    end
+    -- Since we're only using HookScript with OnTooltipSetUnit events,
+    -- we don't need to manually unhook anything - HookScript handles cleanup automatically
+    -- when the addon is disabled or reloaded
     
-    -- Clear the stored functions
+    -- Clear the stored functions (though we don't use them anymore)
     tooltipHooks = {}
 end
 
@@ -323,10 +323,7 @@ function RaidTeamDecorator:OnPlayerLogin()
         self:DebugPrint("Addon not enabled, skipping cache refresh")
     end
     
-    -- Set up tooltip hooks if enabled (try immediately)
-    if self.db.profile.enableTooltips then
-        self:UpdateTooltipHooks()
-    end
+    -- Tooltip hooks are set up in OnEnable()
     
     -- Also schedule delayed tooltip hook setup in case tooltips aren't ready yet
     self:DebugPrint("Scheduling delayed tooltip hook setup...")
@@ -352,59 +349,11 @@ function RaidTeamDecorator:DelayedInitialRefresh()
 end
 
 function RaidTeamDecorator:DelayedTooltipSetup()
-    self:DebugPrint("DelayedTooltipSetup function called!")
-    self:DebugPrint("=== DELAYED TOOLTIP DEBUG INFO ===")
-    self:DebugPrint("GameTooltip exists: " .. tostring(GameTooltip ~= nil))
-    self:DebugPrint("ItemRefTooltip exists: " .. tostring(ItemRefTooltip ~= nil))
-    self:DebugPrint("WorldMapTooltip exists: " .. tostring(WorldMapTooltip ~= nil))
-    if GameTooltip then
-        self:DebugPrint("GameTooltip.SetUnit exists: " .. tostring(GameTooltip.SetUnit ~= nil))
-        self:DebugPrint("GameTooltip type: " .. type(GameTooltip))
-    end
-    self:DebugPrint("enableTooltips setting: " .. tostring(self.db.profile.enableTooltips))
-    self:DebugPrint("=== END DELAYED TOOLTIP DEBUG ===")
-    
-    -- Try to set up tooltip hooks again
-    if self.db.profile.enableTooltips then
-        self:DebugPrint("Attempting delayed tooltip hook setup...")
-        self:UpdateTooltipHooks()
-    end
+    -- Tooltip hooks are set up in OnEnable()
 end
 
-function RaidTeamDecorator:SetupTooltipEvents()
-    self:DebugPrint("SetupTooltipEvents called")
-    
-    if not self.db.profile.enableTooltips then
-        self:DebugPrint("Tooltips disabled, skipping event setup")
-        return
-    end
-    
-    -- Try using tooltip events instead of hooking functions
-    if GameTooltip then
-        self:DebugPrint("Setting up GameTooltip events")
-        
-        -- Use OnTooltipSetUnit event (this was working before)
-        GameTooltip:HookScript("OnTooltipSetUnit", function(self, unit)
-            RaidTeamDecorator:AddRaidTeamToTooltip(self, unit)
-        end)
-    end
-    
-    if ItemRefTooltip then
-        self:DebugPrint("Setting up ItemRefTooltip events")
-        ItemRefTooltip:HookScript("OnTooltipSetUnit", function(self, unit)
-            RaidTeamDecorator:AddRaidTeamToTooltip(self, unit)
-        end)
-    end
-    
-    if WorldMapTooltip then
-        self:DebugPrint("Setting up WorldMapTooltip events")
-        WorldMapTooltip:HookScript("OnTooltipSetUnit", function(self, unit)
-            RaidTeamDecorator:AddRaidTeamToTooltip(self, unit)
-        end)
-    end
-    
-    self:DebugPrint("Tooltip event setup complete")
-end
+-- Removed SetupTooltipEvents() function as it's no longer needed
+-- Tooltip event setup is now handled directly in UpdateTooltipHooks()
 
 
 
@@ -444,8 +393,9 @@ function RaidTeamDecorator:SlashCommand(input)
             self:Print("Debug mode " .. (self.db.profile.debugMode and "enabled" or "disabled"))
         elseif command == "tooltips" then
             self.db.profile.enableTooltips = not self.db.profile.enableTooltips
-            self:UpdateTooltipHooks()
-            self:Print("Tooltips " .. (self.db.profile.enableTooltips and "enabled" or "disabled"))
+            -- Show reload dialog since HookScript hooks can't be removed dynamically
+            StaticPopup_Show("RAIDTEAMDECORATOR_RELOAD")
+            self:Print("Tooltips " .. (self.db.profile.enableTooltips and "enabled" or "disabled") .. " - Reload UI to apply changes")
         elseif command == "channels" then
             self:Print("Channel Settings:")
             self:Print("  Guild: " .. (self.db.profile.showInGuild and "ON" or "OFF"))
@@ -465,8 +415,7 @@ function RaidTeamDecorator:SlashCommand(input)
             self:ChatMessageFilter("CHAT_MSG_WHISPER", "test message", "Mcfaithful")
         elseif command == "testtooltip" then
             self:Print("Testing tooltip setup...")
-            self:SetupTooltipEvents()
-            self:UpdateTooltipHooks()
+            -- Tooltip hooks are managed in OnEnable()
         else
             self:Print("Usage: /rtd [refresh|status|config|toggle|debug|tooltips|channels|test|testtooltip]")
         end
@@ -807,101 +756,20 @@ function RaidTeamDecorator:UpdateChatHooks()
 end
 
 function RaidTeamDecorator:UpdateTooltipHooks()
-    self:DebugPrint("UpdateTooltipHooks called - enableTooltips: " .. tostring(self.db.profile.enableTooltips))
-    
-    -- Remove existing tooltip hooks
-    self:UnhookTooltips()
-    
     if not self.db.profile.enableTooltips then
-        self:DebugPrint("Tooltips disabled, skipping hook setup")
         return
     end
     
-    self:DebugPrint("Setting up tooltip hooks...")
-    
-    -- Hook GameTooltip if it exists
+    -- Only hook GameTooltip using the OnTooltipSetUnit event (the only method that works)
     if GameTooltip then
-        self:DebugPrint("Hooking GameTooltip")
-        self:HookGameTooltip()
-    else
-        self:DebugPrint("GameTooltip not found")
+        GameTooltip:HookScript("OnTooltipSetUnit", function(self, unit)
+            RaidTeamDecorator:AddRaidTeamToTooltip(self, unit)
+        end)
     end
-    
-    -- Hook other common tooltips
-    if ItemRefTooltip then
-        self:DebugPrint("Hooking ItemRefTooltip")
-        self:HookTooltip(ItemRefTooltip)
-    else
-        self:DebugPrint("ItemRefTooltip not found")
-    end
-    
-    if WorldMapTooltip then
-        self:DebugPrint("Hooking WorldMapTooltip")
-        self:HookTooltip(WorldMapTooltip)
-    else
-        self:DebugPrint("WorldMapTooltip not found")
-    end
-    
-    self:DebugPrint("Tooltip hook setup complete")
 end
 
-function RaidTeamDecorator:HookGameTooltip()
-    if not GameTooltip or tooltipHooks[GameTooltip] then
-        self:DebugPrint("GameTooltip hook skipped - already hooked or not available")
-        return
-    end
-    
-    self:DebugPrint("Hooking GameTooltip.SetUnit")
-    
-    -- Store the original SetUnit function
-    tooltipHooks[GameTooltip] = GameTooltip.SetUnit
-    
-    -- Create our hook function
-    local function TooltipSetUnitHook(self, unit)
-        self:DebugPrint("GameTooltip.SetUnit hook called for unit: " .. (unit or "nil"))
-        
-        -- Call the original function first
-        if tooltipHooks[GameTooltip] then
-            tooltipHooks[GameTooltip](self, unit)
-        end
-        
-        -- Add our raid team information
-        RaidTeamDecorator:AddRaidTeamToTooltip(self, unit)
-    end
-    
-    -- Replace the SetUnit function
-    GameTooltip.SetUnit = TooltipSetUnitHook
-    self:DebugPrint("GameTooltip.SetUnit hook installed successfully")
-end
-
-function RaidTeamDecorator:HookTooltip(tooltip)
-    if not tooltip or tooltipHooks[tooltip] then
-        self:DebugPrint("Tooltip hook skipped - already hooked or not available")
-        return
-    end
-    
-    self:DebugPrint("Hooking tooltip: " .. tostring(tooltip))
-    
-    -- Store the original SetUnit function
-    tooltipHooks[tooltip] = tooltip.SetUnit
-    
-    -- Create our hook function
-    local function TooltipSetUnitHook(self, unit)
-        self:DebugPrint("Tooltip.SetUnit hook called for unit: " .. (unit or "nil"))
-        
-        -- Call the original function first
-        if tooltipHooks[tooltip] then
-            tooltipHooks[tooltip](self, unit)
-        end
-        
-        -- Add our raid team information
-        RaidTeamDecorator:AddRaidTeamToTooltip(self, unit)
-    end
-    
-    -- Replace the SetUnit function
-    tooltip.SetUnit = TooltipSetUnitHook
-    self:DebugPrint("Tooltip.SetUnit hook installed successfully")
-end
+-- Removed HookGameTooltip() and HookTooltip() functions as they are no longer needed
+-- We only use the OnTooltipSetUnit event which is handled directly in UpdateTooltipHooks()
 
 function RaidTeamDecorator:AddRaidTeamToTooltip(tooltip, unit)
     -- If unit is nil, try to get it from the tooltip
@@ -949,9 +817,11 @@ function RaidTeamDecorator:AddRaidTeamToTooltip(tooltip, unit)
     
     -- Get raid teams for this player
     local raidTeams = self:GetPlayerRaidTeams(name)
-    self:DebugPrint("Raid teams found for " .. name .. ": " .. (#raidTeams > 0 and table.concat(raidTeams, ", ") or "none"))
     
     if #raidTeams > 0 then
+        -- Debug: Only show debug message when player actually has raid teams
+        self:DebugPrint("Raid teams found for " .. name .. ": " .. table.concat(raidTeams, ", "))
+        
         -- Add a blank line for spacing
         tooltip:AddLine(" ")
         
