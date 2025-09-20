@@ -29,7 +29,9 @@ local defaults = {
     showInWhisper = false,
     debugMode = false,
     -- Tooltip settings
-    enableTooltips = true
+    enableTooltips = true,
+    -- Performance settings
+    disableInRaidZones = true
 }
 
 -- Global cache for raid team data
@@ -119,6 +121,24 @@ local options = {
                 },
             },
         },
+        performance = {
+            type = "group",
+            name = "Performance Settings",
+            desc = "Configure performance-related options",
+            order = 5,
+            args = {
+                disableInRaidZones = {
+                    type = "toggle",
+                    name = "Disable in Raid Zones",
+                    desc = "Automatically disable the addon when in raid instances to improve performance",
+                    get = function() return RaidTeamDecorator.db.profile.disableInRaidZones end,
+                    set = function(info, value)
+                        RaidTeamDecorator.db.profile.disableInRaidZones = value
+                    end,
+                    order = 1,
+                },
+            },
+        },
         refresh = {
             type = "execute",
             name = "Refresh Cache",
@@ -127,7 +147,7 @@ local options = {
                 RaidTeamDecorator:RefreshRaidTeamCache()
                 RaidTeamDecorator:Print("Raid team cache refreshed!")
             end,
-            order = 5,
+            order = 6,
         },
     },
 }
@@ -320,8 +340,10 @@ function RaidTeamDecorator:SlashCommand(input)
         elseif command == "testtooltip" then
             self:Print("Testing tooltip setup...")
             -- Tooltip hooks are managed in OnEnable()
+        elseif command == "instance" then
+            self:PrintInstanceStatus()
         else
-            self:Print("Usage: /rtd [refresh|status|config|toggle|debug|tooltips|channels|test|testtooltip]")
+            self:Print("Usage: /rtd [refresh|status|config|toggle|debug|tooltips|channels|test|testtooltip|instance]")
         end
     end)
     
@@ -376,6 +398,34 @@ function RaidTeamDecorator:PrintStatus()
     end
 end
 
+function RaidTeamDecorator:PrintInstanceStatus()
+    local instanceInfo = self:GetInstanceInfo()
+    
+    self:Print("=== Instance Status ===")
+    self:Print("In Instance: " .. (instanceInfo.inInstance and "Yes" or "No"))
+    
+    if instanceInfo.inInstance then
+        self:Print("Instance Type: " .. (instanceInfo.instanceType or "Unknown"))
+        self:Print("Instance Name: " .. (instanceInfo.name or "Unknown"))
+        self:Print("Difficulty: " .. (instanceInfo.difficultyName or "Unknown"))
+        self:Print("Max Players: " .. (instanceInfo.maxPlayers or "Unknown"))
+        self:Print("Group Size: " .. (instanceInfo.instanceGroupSize or "Unknown"))
+        
+        if instanceInfo.instanceType == "raid" then
+            self:Print("|cffFF0000RAID ZONE DETECTED|r")
+            if self.db.profile.disableInRaidZones then
+                self:Print("|cffFFFF00Addon is disabled in raid zones for performance|r")
+            else
+                self:Print("|cff00FF00Addon is enabled in raid zones|r")
+            end
+        end
+    else
+        self:Print("Currently in open world")
+    end
+    
+    self:Print("Disable in Raid Zones: " .. (self.db.profile.disableInRaidZones and "Enabled" or "Disabled"))
+end
+
 function RaidTeamDecorator:GetCacheSize()
     local count = 0
     for _ in pairs(RaidTeamCache) do
@@ -388,6 +438,27 @@ function RaidTeamDecorator:DebugPrint(message)
     if self.db.profile.debugMode then
         self:Print("|cff00FF00[DEBUG]|r " .. message)
     end
+end
+
+function RaidTeamDecorator:IsInRaidZone()
+    local inInstance, instanceType = IsInInstance()
+    return inInstance and instanceType == "raid"
+end
+
+function RaidTeamDecorator:GetInstanceInfo()
+    local inInstance, instanceType = IsInInstance()
+    local name, instanceType2, difficultyID, difficultyName, maxPlayers, dynamicDifficulty, isDynamic, instanceMapID, instanceGroupSize = GetInstanceInfo()
+    
+    return {
+        inInstance = inInstance,
+        instanceType = instanceType,
+        name = name,
+        difficultyID = difficultyID,
+        difficultyName = difficultyName,
+        maxPlayers = maxPlayers,
+        instanceMapID = instanceMapID,
+        instanceGroupSize = instanceGroupSize
+    }
 end
 
 function RaidTeamDecorator:ParseRaidTeamsFromNote(note)
@@ -679,6 +750,12 @@ function RaidTeamDecorator:AddRaidTeamToTooltip(tooltip, unit)
         return
     end
     
+    -- Check if we should disable in raid zones
+    if self.db.profile.disableInRaidZones and self:IsInRaidZone() then
+        self:DebugPrint("In raid zone, skipping tooltip processing for performance")
+        return
+    end
+    
     if not unit then
         return
     end
@@ -760,6 +837,12 @@ end
 function RaidTeamDecorator:ChatMessageFilter(event, msg, sender, ...)
     -- Early exit conditions
     if not IsInGuild() or not GRM_API then
+        return false, msg, sender, ...
+    end
+    
+    -- Check if we should disable in raid zones
+    if self.db.profile.disableInRaidZones and self:IsInRaidZone() then
+        self:DebugPrint("In raid zone, skipping chat processing for performance")
         return false, msg, sender, ...
     end
     
