@@ -340,10 +340,8 @@ function RaidTeamDecorator:SlashCommand(input)
         elseif command == "testtooltip" then
             self:Print("Testing tooltip setup...")
             -- Tooltip hooks are managed in OnEnable()
-        elseif command == "instance" then
-            self:PrintInstanceStatus()
         else
-            self:Print("Usage: /rtd [refresh|status|config|toggle|debug|tooltips|channels|test|testtooltip|instance]")
+            self:Print("Usage: /rtd [refresh|status|config|toggle|debug|tooltips|channels|test|testtooltip]")
         end
     end)
     
@@ -398,33 +396,6 @@ function RaidTeamDecorator:PrintStatus()
     end
 end
 
-function RaidTeamDecorator:PrintInstanceStatus()
-    local instanceInfo = self:GetInstanceInfo()
-    
-    self:Print("=== Instance Status ===")
-    self:Print("In Instance: " .. (instanceInfo.inInstance and "Yes" or "No"))
-    
-    if instanceInfo.inInstance then
-        self:Print("Instance Type: " .. (instanceInfo.instanceType or "Unknown"))
-        self:Print("Instance Name: " .. (instanceInfo.name or "Unknown"))
-        self:Print("Difficulty: " .. (instanceInfo.difficultyName or "Unknown"))
-        self:Print("Max Players: " .. (instanceInfo.maxPlayers or "Unknown"))
-        self:Print("Group Size: " .. (instanceInfo.instanceGroupSize or "Unknown"))
-        
-        if instanceInfo.instanceType == "raid" then
-            self:Print("|cffFF0000RAID ZONE DETECTED|r")
-            if self.db.profile.disableInRaidZones then
-                self:Print("|cffFFFF00Addon is disabled in raid zones for performance|r")
-            else
-                self:Print("|cff00FF00Addon is enabled in raid zones|r")
-            end
-        end
-    else
-        self:Print("Currently in open world")
-    end
-    
-    self:Print("Disable in Raid Zones: " .. (self.db.profile.disableInRaidZones and "Enabled" or "Disabled"))
-end
 
 function RaidTeamDecorator:GetCacheSize()
     local count = 0
