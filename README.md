@@ -1,10 +1,10 @@
 # Raid Team Decorator
 
-A World of Warcraft addon that displays raid team information in chat messages by integrating with Guild Roster Manager (GRM).
+A World of Warcraft addon that displays raid team information in chat messages and on tooltips by integrating with Guild Roster Manager (GRM).
 
 ## Features
 
-- **Raid Team Display**: Shows colored raid team tags before chat messages from guild members
+- **Raid Team Display**: Shows colored raid team tags before chat messages from guild members in addition to tooltips
 - **GRM Integration**: Automatically reads raid team information from GRM's custom notes
 - **Alt Group Support**: Propagates raid team information across alt characters
 - **Configurable Channels**: Choose which chat channels to show raid teams in
@@ -71,12 +71,10 @@ Available settings:
 - **Debug Mode**: Enable debug messages
 - **Chat Channels**: Configure which channels show raid teams
   - Guild Chat
-  - Officer Chat
-  - Party Chat
-  - Raid Chat
   - Whisper
-  - Instance Chat
 - **Refresh Cache**: Manually refresh raid team data
+- **Enable Raid Team Tooltips**: Turn the feature on/off
+- **Disable Tooltip Lookups in Raid Instances**: Skip lookups when in a raid instance, as if everything is an npc
 
 ## How It Works
 
@@ -85,6 +83,7 @@ Available settings:
 3. **Alt Group Processing**: Merges raid teams across alt characters in the same group
 4. **Caching**: Stores raid team data for fast lookup during chat
 5. **Chat Filtering**: Hooks into chat events to add raid team prefixes
+6. **Tooltip decoration**: Hooks into tooltip events, but if unit is Creature, ends lookup
 
 ## Alt Group Support
 
@@ -95,12 +94,11 @@ If a player is in an alt group in GRM:
 
 ## Troubleshooting
 
-### Addon Not Working
-
-1. Check that Guild Roster Manager is installed and enabled
-2. Verify you're in a guild
-3. Enable debug mode to see diagnostic messages
-4. Try manually refreshing the cache with `/rtd refresh`
+For issues or questions:
+1. Enable debug mode and check for error messages
+2. Use `/rtd status` to verify addon state
+3. Check that GRM is working properly
+4. Verify raid team format in custom notes
 
 ### No Raid Teams Showing
 
@@ -109,51 +107,12 @@ If a player is in an alt group in GRM:
 3. Verify the player is a guild member
 4. Try refreshing the cache
 
-### Debug Mode
-
-Enable debug mode in settings to see:
-- Cache refresh progress
-- Raid team parsing results
-- Alt group processing
-- General addon status messages
-
-## Configuration
-
-The addon uses Ace3's configuration system and stores settings in the `RaidTeamDecoratorDB` saved variable.
-
-### Default Settings
-
-```lua
-{
-    enabled = true,
-    showInGuild = true,
-    showInOfficer = true,
-    showInParty = true,
-    showInRaid = true,
-    showInWhisper = false,
-    showInInstance = true,
-    debugMode = false
-}
-```
-
 ## Performance
 
 - **Caching**: Raid team data is cached in memory for fast lookup
-- **Selective Updates**: Cache only refreshes when necessary (guild roster changes, login)
-- **Efficient Parsing**: Uses optimized string matching patterns
-- **Memory Management**: Cache is cleared when leaving guild
+- **Raiding**: Tooltip lookups are disabled by default while in a raid
 
 ## Compatibility
 
-- **WoW Version**: Classic Era (Interface 11403)
+- **WoW Version**: Classic Anniversary
 - **GRM Version**: Any version with public API support
-- **Other Addons**: Should be compatible with most other addons
-
-## Support
-
-For issues or questions:
-1. Enable debug mode and check for error messages
-2. Use `/rtd status` to verify addon state
-3. Check that GRM is working properly
-4. Verify raid team format in custom notes
-
