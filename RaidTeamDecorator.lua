@@ -786,6 +786,18 @@ function RaidTeamDecorator:AddRaidTeamToTooltip(tooltip, unit)
         return
     end
     
+    -- Check if this is a player using mouseover GUID (since the unit parameter is just the name)
+    local mouseoverGUID = UnitGUID("mouseover")
+    if mouseoverGUID then
+        local unitType = strsplit("-", mouseoverGUID)
+        if unitType ~= "Player" then
+            -- Skip processing for NPCs
+            return
+        end
+    else
+        return
+    end
+    
     -- Don't show for own unit
     if UnitIsUnit(unit, "player") then
         return
