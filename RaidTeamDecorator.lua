@@ -26,18 +26,10 @@ local raidTeamColors = {
 local defaults = {
     enabled = true,
     showInGuild = true,
-    showInOfficer = true,
-    showInParty = true,
-    showInRaid = true,
     showInWhisper = false,
-    showInInstance = true,
     debugMode = false,
     -- Tooltip settings
-    enableTooltips = true,
-    showTooltipInGuild = true,
-    showTooltipInParty = true,
-    showTooltipInRaid = true,
-    showTooltipInBattleground = true
+    enableTooltips = true
 }
 
 -- Global cache for raid team data
@@ -95,36 +87,6 @@ local options = {
                     end,
                     order = 1,
                 },
-                showInOfficer = {
-                    type = "toggle",
-                    name = "Officer Chat",
-                    desc = "Show raid teams in officer chat",
-                    get = function() return RaidTeamDecorator.db.profile.showInOfficer end,
-                    set = function(info, value)
-                        RaidTeamDecorator.db.profile.showInOfficer = value
-                    end,
-                    order = 2,
-                },
-                showInParty = {
-                    type = "toggle",
-                    name = "Party Chat",
-                    desc = "Show raid teams in party chat",
-                    get = function() return RaidTeamDecorator.db.profile.showInParty end,
-                    set = function(info, value)
-                        RaidTeamDecorator.db.profile.showInParty = value
-                    end,
-                    order = 3,
-                },
-                showInRaid = {
-                    type = "toggle",
-                    name = "Raid Chat",
-                    desc = "Show raid teams in raid chat",
-                    get = function() return RaidTeamDecorator.db.profile.showInRaid end,
-                    set = function(info, value)
-                        RaidTeamDecorator.db.profile.showInRaid = value
-                    end,
-                    order = 4,
-                },
                 showInWhisper = {
                     type = "toggle",
                     name = "Whisper",
@@ -133,17 +95,7 @@ local options = {
                     set = function(info, value)
                         RaidTeamDecorator.db.profile.showInWhisper = value
                     end,
-                    order = 5,
-                },
-                showInInstance = {
-                    type = "toggle",
-                    name = "Instance Chat",
-                    desc = "Show raid teams in instance chat",
-                    get = function() return RaidTeamDecorator.db.profile.showInInstance end,
-                    set = function(info, value)
-                        RaidTeamDecorator.db.profile.showInInstance = value
-                    end,
-                    order = 6,
+                    order = 2,
                 },
             },
         },
@@ -156,7 +108,7 @@ local options = {
                 enableTooltips = {
                     type = "toggle",
                     name = "Enable Tooltips",
-                    desc = "Show raid team information in tooltips when hovering over players",
+                    desc = "Show raid team information in tooltips when hovering over guild members",
                     get = function() return RaidTeamDecorator.db.profile.enableTooltips end,
                     set = function(info, value)
                         RaidTeamDecorator.db.profile.enableTooltips = value
@@ -164,46 +116,6 @@ local options = {
                         StaticPopup_Show("RAIDTEAMDECORATOR_RELOAD")
                     end,
                     order = 1,
-                },
-                showTooltipInGuild = {
-                    type = "toggle",
-                    name = "Guild Members",
-                    desc = "Show raid teams in tooltips for guild members",
-                    get = function() return RaidTeamDecorator.db.profile.showTooltipInGuild end,
-                    set = function(info, value)
-                        RaidTeamDecorator.db.profile.showTooltipInGuild = value
-                    end,
-                    order = 2,
-                },
-                showTooltipInParty = {
-                    type = "toggle",
-                    name = "Party Members",
-                    desc = "Show raid teams in tooltips for party members",
-                    get = function() return RaidTeamDecorator.db.profile.showTooltipInParty end,
-                    set = function(info, value)
-                        RaidTeamDecorator.db.profile.showTooltipInParty = value
-                    end,
-                    order = 3,
-                },
-                showTooltipInRaid = {
-                    type = "toggle",
-                    name = "Raid Members",
-                    desc = "Show raid teams in tooltips for raid members",
-                    get = function() return RaidTeamDecorator.db.profile.showTooltipInRaid end,
-                    set = function(info, value)
-                        RaidTeamDecorator.db.profile.showTooltipInRaid = value
-                    end,
-                    order = 4,
-                },
-                showTooltipInBattleground = {
-                    type = "toggle",
-                    name = "Battleground Members",
-                    desc = "Show raid teams in tooltips for guild members in the same battleground",
-                    get = function() return RaidTeamDecorator.db.profile.showTooltipInBattleground end,
-                    set = function(info, value)
-                        RaidTeamDecorator.db.profile.showTooltipInBattleground = value
-                    end,
-                    order = 5,
                 },
             },
         },
@@ -399,17 +311,9 @@ function RaidTeamDecorator:SlashCommand(input)
         elseif command == "channels" then
             self:Print("Channel Settings:")
             self:Print("  Guild: " .. (self.db.profile.showInGuild and "ON" or "OFF"))
-            self:Print("  Officer: " .. (self.db.profile.showInOfficer and "ON" or "OFF"))
-            self:Print("  Party: " .. (self.db.profile.showInParty and "ON" or "OFF"))
-            self:Print("  Raid: " .. (self.db.profile.showInRaid and "ON" or "OFF"))
             self:Print("  Whisper: " .. (self.db.profile.showInWhisper and "ON" or "OFF"))
-            self:Print("  Instance: " .. (self.db.profile.showInInstance and "ON" or "OFF"))
             self:Print("Tooltip Settings:")
             self:Print("  Tooltips: " .. (self.db.profile.enableTooltips and "ON" or "OFF"))
-            self:Print("  Guild: " .. (self.db.profile.showTooltipInGuild and "ON" or "OFF"))
-            self:Print("  Party: " .. (self.db.profile.showTooltipInParty and "ON" or "OFF"))
-            self:Print("  Raid: " .. (self.db.profile.showTooltipInRaid and "ON" or "OFF"))
-            self:Print("  Battleground: " .. (self.db.profile.showTooltipInBattleground and "ON" or "OFF"))
         elseif command == "test" then
             self:Print("Testing chat filter function...")
             self:ChatMessageFilter("CHAT_MSG_WHISPER", "test message", "Mcfaithful")
@@ -730,13 +634,6 @@ function RaidTeamDecorator:UpdateChatHooks()
     -- Hook chat filters instead of events
     local chatFilters = {
         "CHAT_MSG_GUILD",
-        "CHAT_MSG_OFFICER", 
-        "CHAT_MSG_PARTY",
-        "CHAT_MSG_PARTY_LEADER",
-        "CHAT_MSG_RAID",
-        "CHAT_MSG_RAID_LEADER",
-        "CHAT_MSG_INSTANCE_CHAT",
-        "CHAT_MSG_INSTANCE_CHAT_LEADER",
         "CHAT_MSG_WHISPER"
     }
     
@@ -856,35 +753,8 @@ function RaidTeamDecorator:ShouldShowTooltipForUnit(unit)
         return false
     end
     
-    -- Check if unit is in party/raid
-    local inParty = UnitInParty(unit)
-    local inRaid = UnitInRaid(unit)
-    
-    -- Show for guild members if enabled
-    if self.db.profile.showTooltipInGuild then
-        return true
-    end
-    
-    -- Show for party members if enabled
-    if inParty and self.db.profile.showTooltipInParty then
-        return true
-    end
-    
-    -- Show for raid members if enabled
-    if inRaid and self.db.profile.showTooltipInRaid then
-        return true
-    end
-    
-    -- Show for battleground members if enabled
-    if self.db.profile.showTooltipInBattleground then
-        -- Check if we're in a battleground
-        local inBattleground = IsInInstance() and (GetZonePVPInfo() == "combat" or GetZonePVPInfo() == "friendly")
-        if inBattleground then
-            return true
-        end
-    end
-    
-    return false
+    -- Show for guild members if tooltips are enabled
+    return self.db.profile.enableTooltips
 end
 
 function RaidTeamDecorator:ChatMessageFilter(event, msg, sender, ...)
@@ -931,15 +801,7 @@ function RaidTeamDecorator:ChatMessageFilter(event, msg, sender, ...)
     local channelEnabled = false
     if event == "CHAT_MSG_GUILD" and self.db.profile.showInGuild then
         channelEnabled = true
-    elseif event == "CHAT_MSG_OFFICER" and self.db.profile.showInOfficer then
-        channelEnabled = true
-    elseif (event == "CHAT_MSG_PARTY" or event == "CHAT_MSG_PARTY_LEADER") and self.db.profile.showInParty then
-        channelEnabled = true
-    elseif (event == "CHAT_MSG_RAID" or event == "CHAT_MSG_RAID_LEADER") and self.db.profile.showInRaid then
-        channelEnabled = true
     elseif event == "CHAT_MSG_WHISPER" and self.db.profile.showInWhisper then
-        channelEnabled = true
-    elseif (event == "CHAT_MSG_INSTANCE_CHAT" or event == "CHAT_MSG_INSTANCE_CHAT_LEADER") and self.db.profile.showInInstance then
         channelEnabled = true
     end
     
