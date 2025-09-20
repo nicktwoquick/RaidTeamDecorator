@@ -119,23 +119,15 @@ local options = {
                     end,
                     order = 1,
                 },
-            },
-        },
-        performance = {
-            type = "group",
-            name = "Performance Settings",
-            desc = "Configure performance-related options",
-            order = 5,
-            args = {
                 disableInRaidZones = {
                     type = "toggle",
-                    name = "Disable in Raid Zones",
-                    desc = "Automatically disable the addon when in raid instances to improve performance",
+                    name = "Disable Tooltips in Raid Zones",
+                    desc = "Automatically disable tooltips when in raid instances to improve performance",
                     get = function() return RaidTeamDecorator.db.profile.disableInRaidZones end,
                     set = function(info, value)
                         RaidTeamDecorator.db.profile.disableInRaidZones = value
                     end,
-                    order = 1,
+                    order = 2,
                 },
             },
         },
@@ -147,7 +139,7 @@ local options = {
                 RaidTeamDecorator:RefreshRaidTeamCache()
                 RaidTeamDecorator:Print("Raid team cache refreshed!")
             end,
-            order = 6,
+            order = 5,
         },
     },
 }
@@ -808,12 +800,6 @@ end
 function RaidTeamDecorator:ChatMessageFilter(event, msg, sender, ...)
     -- Early exit conditions
     if not IsInGuild() or not GRM_API then
-        return false, msg, sender, ...
-    end
-    
-    -- Check if we should disable in raid zones
-    if self.db.profile.disableInRaidZones and self:IsInRaidZone() then
-        self:DebugPrint("In raid zone, skipping chat processing for performance")
         return false, msg, sender, ...
     end
     
