@@ -67,7 +67,7 @@ Access settings through:
 - Slash command `/rtd`
 
 Available settings:
-- **Enable Raid Team Chat**: Turn the feature on/off
+- **Enable Raid Team Decorator**: Turn the feature on/off
 - **Debug Mode**: Enable debug messages
 - **Chat Channels**: Configure which channels show raid teams
   - Guild Chat
