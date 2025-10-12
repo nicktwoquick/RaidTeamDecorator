@@ -43,6 +43,9 @@ local updatingChatHooks = false
 -- Flag to prevent multiple cache refreshes
 local cacheRefreshInProgress = false
 
+-- Flag to track if cache has been initialized
+local cacheInitialized = false
+
 -- Store filter function references for proper cleanup
 local chatFilterFunctions = {}
 
@@ -139,7 +142,7 @@ local options = {
             name = "Refresh Cache",
             desc = "Manually refresh the raid team cache",
             func = function()
-                RaidTeamDecorator:RefreshRaidTeamCache()
+                RaidTeamDecorator:RefreshRaidTeamCache(true)
                 RaidTeamDecorator:Print("Raid team cache refreshed!")
             end,
             order = 5,
@@ -222,7 +225,13 @@ end
 
 function RaidTeamDecorator:OnPlayerEnteringWorld()
     self:DebugPrint("Player entering world")
-    self:ScheduleCacheRefresh()
+    -- Only initialize cache on first world entry, not every zone change
+    if not cacheInitialized then
+        self:DebugPrint("Cache not initialized yet, scheduling initial refresh")
+        self:ScheduleCacheRefresh()
+    else
+        self:DebugPrint("Cache already initialized, skipping refresh")
+    end
 end
 
 function RaidTeamDecorator:ScheduleCacheRefresh()
@@ -282,7 +291,7 @@ function RaidTeamDecorator:DelayedInitialRefresh()
     cacheRefreshInProgress = true
     
     local success, err = pcall(function()
-        self:RefreshRaidTeamCache()
+        self:RefreshRaidTeamCache(false)
     end)
     
     -- Clear flag when done
@@ -317,7 +326,7 @@ function RaidTeamDecorator:SlashCommand(input)
         local command = string.lower(input)
         
         if command == "refresh" then
-            self:RefreshRaidTeamCache()
+            self:RefreshRaidTeamCache(true)
             self:Print("Raid team cache refreshed!")
         elseif command == "status" then
             self:PrintStatus()
@@ -462,8 +471,9 @@ function RaidTeamDecorator:GetColoredRaidTeam(teamString)
     return color .. teamString .. "|r"
 end
 
-function RaidTeamDecorator:RefreshRaidTeamCache()
-    self:DebugPrint("Starting cache refresh...")
+function RaidTeamDecorator:RefreshRaidTeamCache(forceRefresh)
+    local isManualRefresh = forceRefresh or false
+    self:DebugPrint("Starting cache refresh..." .. (isManualRefresh and " (manual refresh)" or " (automatic initialization)"))
     
     if not IsInGuild() then
         self:DebugPrint("Not in a guild, skipping cache refresh")
@@ -550,6 +560,10 @@ function RaidTeamDecorator:RefreshRaidTeamCache()
     end
     
     self:DebugPrint(string.format("Cache refresh complete: %d members processed, %d GRM members found, %d with raid teams", memberCount, grmMemberCount, raidTeamCount))
+    
+    -- Mark cache as initialized after successful refresh
+    cacheInitialized = true
+    self:DebugPrint("Cache initialization flag set to true")
     
     if raidTeamCount == 0 then
         self:Print("|cffFFFF00Warning:|r No raid teams found. Check that:")
