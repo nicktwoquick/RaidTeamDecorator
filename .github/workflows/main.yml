@@ -6,4 +6,4 @@ on:
 
 jobs:
   call-deploy:
-    uses: nicktwoquick/gh-workflows/.github/workflows/wow-addon-release.yml@main
+    uses: nicktwoquick/gh-workflows/.github/workflows/wow-addon-release.yml@bigwigs-packager

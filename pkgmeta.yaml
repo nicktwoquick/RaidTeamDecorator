@@ -1,0 +1,7 @@
+package-as: RaidTeamDecorator
+
+ignore:
+    - .github/
+    - .gitignore
+
+enable-nolib-creation: no
