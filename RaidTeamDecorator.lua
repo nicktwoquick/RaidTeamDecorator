@@ -40,6 +40,9 @@ RaidTeamCache = {}
 -- Flag to prevent multiple simultaneous UpdateChatHooks calls
 local updatingChatHooks = false
 
+-- Flag to prevent multiple cache refreshes
+local cacheRefreshInProgress = false
+
 -- Store filter function references for proper cleanup
 local chatFilterFunctions = {}
 
@@ -172,12 +175,17 @@ function RaidTeamDecorator:OnInitialize()
 end
 
 function RaidTeamDecorator:OnEnable()
+    self:DebugPrint("=== OnEnable called ===")
     self:RegisterEvent("ADDON_LOADED", "OnAddonLoaded")
-    self:RegisterEvent("PLAYER_LOGIN", "OnPlayerLogin")
+    self:RegisterEvent("PLAYER_ENTERING_WORLD", "OnPlayerEnteringWorld")
+    self:DebugPrint("Events registered: ADDON_LOADED, PLAYER_ENTERING_WORLD")
     
     -- Initialize GRM if already loaded
     if IsAddOnLoaded("Guild_Roster_Manager") then
+        self:DebugPrint("GRM already loaded, initializing...")
         self:InitializeGRM()
+    else
+        self:DebugPrint("GRM not loaded yet")
     end
     
     -- Set up chat hooks if enabled
@@ -226,60 +234,89 @@ function RaidTeamDecorator:OnAddonLoaded(event, addonName)
     end
 end
 
-function RaidTeamDecorator:OnPlayerLogin()
-    self:DebugPrint("Player logged in")
+function RaidTeamDecorator:OnPlayerEnteringWorld()
+    self:DebugPrint("Player entering world")
+    self:ScheduleCacheRefresh()
+end
+
+function RaidTeamDecorator:ScheduleCacheRefresh()
+    -- Check if cache refresh is already in progress
+    if cacheRefreshInProgress then
+        self:DebugPrint("Cache refresh already in progress, skipping schedule")
+        return
+    end
+    
     if self.db.profile.enabled then
         self:UpdateChatHooks()
         
         -- Schedule initial cache refresh after a delay using frame
         self:DebugPrint("Scheduling delayed cache refresh...")
         local frame = CreateFrame("Frame")
-        frame:SetScript("OnUpdate", function(self, elapsed)
-            self.timer = (self.timer or 0) + elapsed
-            if self.timer >= 2 then
-                self:SetScript("OnUpdate", nil)
+        frame:SetScript("OnUpdate", function(frame, elapsed)
+            frame.timer = (frame.timer or 0) + elapsed
+            if frame.timer >= 2 then
+                frame:SetScript("OnUpdate", nil)
                 RaidTeamDecorator:DelayedInitialRefresh()
-                self:Hide()
+                frame:Hide()
             end
         end)
         self:DebugPrint("Frame timer created successfully")
     else
         self:DebugPrint("Addon not enabled, skipping cache refresh")
     end
-    
-    -- Tooltip hooks are set up in OnEnable()
-    
-    -- Also schedule delayed tooltip hook setup in case tooltips aren't ready yet
-    self:DebugPrint("Scheduling delayed tooltip hook setup...")
-    local tooltipFrame = CreateFrame("Frame")
-    tooltipFrame:SetScript("OnUpdate", function(self, elapsed)
-        self.timer = (self.timer or 0) + elapsed
-        if self.timer >= 3 then
-            self:SetScript("OnUpdate", nil)
-            RaidTeamDecorator:DelayedTooltipSetup()
-            self:Hide()
-        end
-    end)
 end
 
 function RaidTeamDecorator:DelayedInitialRefresh()
-    self:DebugPrint("DelayedInitialRefresh function called!")
     self:DebugPrint("Running delayed initial cache refresh")
-    if self.db.profile.enabled and GRM_API then
+    
+    -- Check if cache refresh is already in progress
+    if cacheRefreshInProgress then
+        self:DebugPrint("Cache refresh already in progress, skipping duplicate")
+        return
+    end
+    
+    if not self.db.profile.enabled then
+        self:DebugPrint("Addon not enabled, skipping cache refresh")
+        return
+    end
+    
+    -- Check if GRM is loaded and API is available
+    if not IsAddOnLoaded("Guild_Roster_Manager") then
+        self:DebugPrint("GRM not loaded, skipping cache refresh")
+        return
+    end
+    self:DebugPrint("GRM addon is loaded, continuing...")
+    
+    if not GRM_API then
+        self:DebugPrint("GRM API not available")
+        return
+    end
+    self:DebugPrint("GRM_API exists, continuing...")
+    
+    -- Check if GRM API functions are actually available
+    if not GRM_API.GetMember then
+        self:DebugPrint("GRM API functions not ready")
+        return
+    end
+    self:DebugPrint("GRM API functions are ready, continuing...")
+    
+    -- Set flag to prevent duplicate refreshes
+    cacheRefreshInProgress = true
+    
+    local success, err = pcall(function()
         self:RefreshRaidTeamCache()
+    end)
+    
+    -- Clear flag when done
+    cacheRefreshInProgress = false
+    
+    if not success then
+        self:Print("|cffFF0000Error in RefreshRaidTeamCache:|r " .. tostring(err))
+        self:DebugPrint("RefreshRaidTeamCache failed: " .. tostring(err))
     else
-        self:DebugPrint("Skipping cache refresh - enabled: " .. tostring(self.db.profile.enabled) .. ", GRM_API: " .. tostring(GRM_API ~= nil))
+        self:DebugPrint("RefreshRaidTeamCache completed successfully")
     end
 end
-
-function RaidTeamDecorator:DelayedTooltipSetup()
-    -- Tooltip hooks are set up in OnEnable()
-end
-
--- Removed SetupTooltipEvents() function as it's no longer needed
--- Tooltip event setup is now handled directly in UpdateTooltipHooks()
-
-
 
 function RaidTeamDecorator:InitializeGRM()
     if not GRM_API then
@@ -329,11 +366,8 @@ function RaidTeamDecorator:SlashCommand(input)
         elseif command == "test" then
             self:Print("Testing chat filter function...")
             self:ChatMessageFilter("CHAT_MSG_WHISPER", "test message", "Mcfaithful")
-        elseif command == "testtooltip" then
-            self:Print("Testing tooltip setup...")
-            -- Tooltip hooks are managed in OnEnable()
         else
-            self:Print("Usage: /rtd [refresh|status|config|toggle|debug|tooltips|channels|test|testtooltip]")
+            self:Print("Usage: /rtd [refresh|status|config|toggle|debug|tooltips|channels|test]")
         end
     end)
     
@@ -558,7 +592,12 @@ function RaidTeamDecorator:RefreshRaidTeamCache()
                 
                 -- Handle alt group propagation
                 if memberData.altGroup and memberData.altGroup ~= "" then
-                    self:ProcessAltGroup(name, memberData.altGroup)
+                    local success, err = pcall(function()
+                        self:ProcessAltGroup(name, memberData.altGroup)
+                    end)
+                    if not success then
+                        self:DebugPrint("Error in ProcessAltGroup for " .. name .. ": " .. tostring(err))
+                    end
                 end
             else
                 self:DebugPrint("Failed to get GRM data for " .. name)
@@ -583,8 +622,19 @@ function RaidTeamDecorator:ProcessAltGroup(playerName, altGroup)
         return
     end
     
+    -- Check if GetMemberAlts function exists
+    if not GRM_API.GetMemberAlts then
+        self:DebugPrint("GRM_API.GetMemberAlts not available, skipping alt group processing")
+        return
+    end
+    
     -- Get all alts in the group
-    local alts = GRM_API.GetMemberAlts(playerName)
+    local success, alts = pcall(GRM_API.GetMemberAlts, playerName)
+    if not success then
+        self:DebugPrint("Error calling GRM_API.GetMemberAlts for " .. playerName .. ": " .. tostring(alts))
+        return
+    end
+    
     if not alts or #alts == 0 then
         return
     end
@@ -606,8 +656,8 @@ function RaidTeamDecorator:ProcessAltGroup(playerName, altGroup)
     
     -- Add alt raid teams
     for _, altName in ipairs(alts) do
-        local altData = GRM_API.GetMember(altName)
-        if altData and altData.customNote and altData.customNote[4] then
+        local success, altData = pcall(GRM_API.GetMember, altName)
+        if success and altData and altData.customNote and altData.customNote[4] then
             local altRaidTeams = self:ParseRaidTeamsFromNote(altData.customNote[4])
             for _, team in ipairs(altRaidTeams) do
                 if not raidTeamSet[team] then
@@ -615,6 +665,8 @@ function RaidTeamDecorator:ProcessAltGroup(playerName, altGroup)
                     raidTeamSet[team] = true
                 end
             end
+        elseif not success then
+            self:DebugPrint("Error getting GRM data for alt " .. altName .. ": " .. tostring(altData))
         end
     end
     
