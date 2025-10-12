@@ -6,7 +6,7 @@ local AceConfig = LibStub("AceConfig-3.0")
 local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 
 -- Addon version
-local VERSION = "1.0.0"
+local VERSION = "0.5.1"
 
 -- Raid team colors (colorblind-friendly palette)
 local raidTeamColors = {
@@ -197,8 +197,6 @@ function RaidTeamDecorator:OnEnable()
     if self.db.profile.enableTooltips then
         self:UpdateTooltipHooks()
     end
-    
-    -- Tooltip hooks are now set up directly in UpdateTooltipHooks()
 end
 
 function RaidTeamDecorator:OnDisable()
@@ -214,18 +212,6 @@ function RaidTeamDecorator:UnhookAll()
     
     -- Clear the stored functions
     chatFilterFunctions = {}
-    
-    -- Remove all tooltip hooks
-    self:UnhookTooltips()
-end
-
-function RaidTeamDecorator:UnhookTooltips()
-    -- Since we're only using HookScript with OnTooltipSetUnit events,
-    -- we don't need to manually unhook anything - HookScript handles cleanup automatically
-    -- when the addon is disabled or reloaded
-    
-    -- Clear the stored functions (though we don't use them anymore)
-    tooltipHooks = {}
 end
 
 function RaidTeamDecorator:OnAddonLoaded(event, addonName)
@@ -287,18 +273,10 @@ function RaidTeamDecorator:DelayedInitialRefresh()
     end
     self:DebugPrint("GRM addon is loaded, continuing...")
     
-    if not GRM_API then
-        self:DebugPrint("GRM API not available")
+    if not GRM_API or not GRM_API.GetMember then
+        self:DebugPrint("GRM API not available or functions not ready")
         return
     end
-    self:DebugPrint("GRM_API exists, continuing...")
-    
-    -- Check if GRM API functions are actually available
-    if not GRM_API.GetMember then
-        self:DebugPrint("GRM API functions not ready")
-        return
-    end
-    self:DebugPrint("GRM API functions are ready, continuing...")
     
     -- Set flag to prevent duplicate refreshes
     cacheRefreshInProgress = true
@@ -433,22 +411,6 @@ function RaidTeamDecorator:IsInRaidZone()
     return inInstance and instanceType == "raid"
 end
 
-function RaidTeamDecorator:GetInstanceInfo()
-    local inInstance, instanceType = IsInInstance()
-    local name, instanceType2, difficultyID, difficultyName, maxPlayers, dynamicDifficulty, isDynamic, instanceMapID, instanceGroupSize = GetInstanceInfo()
-    
-    return {
-        inInstance = inInstance,
-        instanceType = instanceType,
-        name = name,
-        difficultyID = difficultyID,
-        difficultyName = difficultyName,
-        maxPlayers = maxPlayers,
-        instanceMapID = instanceMapID,
-        instanceGroupSize = instanceGroupSize
-    }
-end
-
 function RaidTeamDecorator:ParseRaidTeamsFromNote(note)
     if not note or note == "" then
         return {}
@@ -509,18 +471,9 @@ function RaidTeamDecorator:RefreshRaidTeamCache()
         return
     end
     
-    if not GRM_API then
-        self:DebugPrint("GRM API not available, skipping cache refresh")
+    if not GRM_API or not GRM_API.GetMember then
+        self:DebugPrint("GRM API not available or missing GetMember function")
         self:Print("|cffFF0000Error:|r Guild Roster Manager (GRM) not found or API not available")
-        return
-    end
-    
-    self:DebugPrint("GRM API found, checking functions...")
-    
-    -- Test GRM API functions
-    if not GRM_API.GetMember then
-        self:DebugPrint("GRM_API.GetMember not available")
-        self:Print("|cffFF0000Error:|r GRM API missing GetMember function")
         return
     end
     
