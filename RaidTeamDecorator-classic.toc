@@ -1,8 +1,8 @@
-## Interface: 11501
+## Interface: 11507
 ## Title: RaidTeamDecorator
 ## Notes: Displays raid team information in chat messages
 ## Author: nicktwoquick
-## Version: 0.5.1
+## Version: 0.5.2
 ## SavedVariables: RaidTeamDecoratorDB
 
 # Libraries (load first)
