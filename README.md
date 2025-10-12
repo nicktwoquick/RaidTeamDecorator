@@ -106,13 +106,3 @@ For issues or questions:
 2. Check that the chat channel is enabled in settings
 3. Verify the player is a guild member
 4. Try refreshing the cache
-
-## Performance
-
-- **Caching**: Raid team data is cached in memory for fast lookup
-- **Raiding**: Tooltip lookups are disabled by default while in a raid
-
-## Compatibility
-
-- **WoW Version**: Classic Anniversary
-- **GRM Version**: Any version with public API support
