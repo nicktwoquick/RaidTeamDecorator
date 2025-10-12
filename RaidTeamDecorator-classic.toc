@@ -2,16 +2,17 @@
 ## Title: RaidTeamDecorator
 ## Notes: Displays raid team information in chat messages
 ## Author: nicktwoquick
-## Version: 0.5.0
+## Version: 0.5.1
 ## SavedVariables: RaidTeamDecoratorDB
 
 # Libraries (load first)
 libs\LibStub\LibStub.lua
-libs\AceConsole-3.0\AceConsole-3.0.xml
-libs\AceEvent-3.0\AceEvent-3.0.xml
+libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
 libs\AceAddon-3.0\AceAddon-3.0.xml
+libs\AceEvent-3.0\AceEvent-3.0.xml
+libs\AceDB-3.0\AceDB-3.0.xml
+libs\AceConsole-3.0\AceConsole-3.0.xml
 libs\AceGUI-3.0\AceGUI-3.0.xml
 libs\AceConfig-3.0\AceConfig-3.0.xml
-libs\AceDB-3.0\AceDB-3.0.xml
 
 RaidTeamDecorator.lua
