@@ -357,17 +357,8 @@ function RaidTeamDecorator:SlashCommand(input)
             -- Show reload dialog since HookScript hooks can't be removed dynamically
             StaticPopup_Show("RAIDTEAMDECORATOR_RELOAD")
             self:Print("Tooltips " .. (self.db.profile.enableTooltips and "enabled" or "disabled") .. " - Reload UI to apply changes")
-        elseif command == "channels" then
-            self:Print("Channel Settings:")
-            self:Print("  Guild: " .. (self.db.profile.showInGuild and "ON" or "OFF"))
-            self:Print("  Whisper: " .. (self.db.profile.showInWhisper and "ON" or "OFF"))
-            self:Print("Tooltip Settings:")
-            self:Print("  Tooltips: " .. (self.db.profile.enableTooltips and "ON" or "OFF"))
-        elseif command == "test" then
-            self:Print("Testing chat filter function...")
-            self:ChatMessageFilter("CHAT_MSG_WHISPER", "test message", "Mcfaithful")
         else
-            self:Print("Usage: /rtd [refresh|status|config|toggle|debug|tooltips|channels|test]")
+            self:Print("Usage: /rtd [refresh|status|config|toggle|debug|tooltips]")
         end
     end)
     
