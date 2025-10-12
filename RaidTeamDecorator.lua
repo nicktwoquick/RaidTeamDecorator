@@ -27,6 +27,8 @@ local defaults = {
     enabled = true,
     showInGuild = true,
     showInWhisper = false,
+    showInRaid = true,
+    showInParty = true,
     debugMode = false,
     -- Tooltip settings
     enableTooltips = true,
@@ -104,6 +106,26 @@ local options = {
                         RaidTeamDecorator.db.profile.showInWhisper = value
                     end,
                     order = 2,
+                },
+                showInRaid = {
+                    type = "toggle",
+                    name = "Raid Chat",
+                    desc = "Show raid teams in raid chat",
+                    get = function() return RaidTeamDecorator.db.profile.showInRaid end,
+                    set = function(info, value)
+                        RaidTeamDecorator.db.profile.showInRaid = value
+                    end,
+                    order = 3,
+                },
+                showInParty = {
+                    type = "toggle",
+                    name = "Party Chat",
+                    desc = "Show raid teams in party chat",
+                    get = function() return RaidTeamDecorator.db.profile.showInParty end,
+                    set = function(info, value)
+                        RaidTeamDecorator.db.profile.showInParty = value
+                    end,
+                    order = 4,
                 },
             },
         },
@@ -678,7 +700,11 @@ function RaidTeamDecorator:UpdateChatHooks()
     -- Hook chat filters instead of events
     local chatFilters = {
         "CHAT_MSG_GUILD",
-        "CHAT_MSG_WHISPER"
+        "CHAT_MSG_WHISPER",
+        "CHAT_MSG_RAID",
+        "CHAT_MSG_RAID_LEADER",
+        "CHAT_MSG_PARTY",
+        "CHAT_MSG_PARTY_LEADER"
     }
     
     for _, filter in ipairs(chatFilters) do
@@ -852,6 +878,10 @@ function RaidTeamDecorator:ChatMessageFilter(event, msg, sender, ...)
     if event == "CHAT_MSG_GUILD" and self.db.profile.showInGuild then
         channelEnabled = true
     elseif event == "CHAT_MSG_WHISPER" and self.db.profile.showInWhisper then
+        channelEnabled = true
+    elseif (event == "CHAT_MSG_RAID" or event == "CHAT_MSG_RAID_LEADER") and self.db.profile.showInRaid then
+        channelEnabled = true
+    elseif (event == "CHAT_MSG_PARTY" or event == "CHAT_MSG_PARTY_LEADER") and self.db.profile.showInParty then
         channelEnabled = true
     end
     
