@@ -20,6 +20,10 @@ local raidTeamColors = {
     ["RT8"] = "|cffFF4500",  -- Orange Red (orange-red, distinct from pure red)
     ["RT9"] = "|cff9370DB",  -- Medium Purple (purple, distinct from blue)
     ["RT10"] = "|cff20B2AA", -- Light Sea Green (teal-green, distinct from other greens)
+    -- New arbitrary raid team colors
+    ["ST6"] = "|cff4682B4",  -- Steel Blue (shade of blue as requested)
+    ["DIL"] = "|cffDC143C",  -- Crimson (distinct red, different from existing colors)
+    ["TFS"] = "|cff2E8B57",  -- Sea Green (distinct green, different from existing colors)
 }
 
 -- Default settings
@@ -478,6 +482,49 @@ function RaidTeamDecorator:ParseRaidTeamsFromNote(note)
             if not found then
                 table.insert(raidTeams, rtString)
             end
+        end
+    end
+    
+    -- New arbitrary raid team patterns (separate logic for future extensibility)
+    -- Pattern for "st6" (case-insensitive search)
+    if string.find(lowerNote, "st6") then
+        local found = false
+        for _, existing in ipairs(raidTeams) do
+            if existing == "ST6" then
+                found = true
+                break
+            end
+        end
+        if not found then
+            table.insert(raidTeams, "ST6")
+        end
+    end
+    
+    -- Pattern for "dil" (case-insensitive search)
+    if string.find(lowerNote, "dil") then
+        local found = false
+        for _, existing in ipairs(raidTeams) do
+            if existing == "DIL" then
+                found = true
+                break
+            end
+        end
+        if not found then
+            table.insert(raidTeams, "DIL")
+        end
+    end
+    
+    -- Pattern for "tfs" (case-insensitive search)
+    if string.find(lowerNote, "tfs") then
+        local found = false
+        for _, existing in ipairs(raidTeams) do
+            if existing == "TFS" then
+                found = true
+                break
+            end
+        end
+        if not found then
+            table.insert(raidTeams, "TFS")
         end
     end
     

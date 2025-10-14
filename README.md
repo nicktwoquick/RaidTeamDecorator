@@ -39,6 +39,7 @@ Once installed, the addon will automatically:
 The addon recognizes these patterns in GRM custom notes:
 - `RT1`, `RT2`, `RT3`, etc. (case insensitive)
 - `raid team 1`, `raid team 2`, `raid team 3`, etc. (case insensitive)
+- `st6`, `dil`, `tfs` (case insensitive, displayed as ST6, DIL, TFS)
 
 ### Raid Team Colors
 
@@ -52,6 +53,9 @@ The addon recognizes these patterns in GRM custom notes:
 - **RT8**: Orange Red
 - **RT9**: Medium Purple
 - **RT10**: Light Sea Green
+- **ST6**: Steel Blue
+- **DIL**: Crimson
+- **TFS**: Sea Green
 
 ### Slash Commands
 
