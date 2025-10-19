@@ -37,22 +37,10 @@ Once installed, the addon will automatically:
 ### Raid Team Format
 
 The addon recognizes these patterns in GRM custom notes:
-- `RT1`, `RT2`, `RT3`, etc. (case insensitive)
-- `raid team 1`, `raid team 2`, `raid team 3`, etc. (case insensitive)
 - `st6`, `dil`, `tfs` (case insensitive, displayed as ST6, DIL, TFS)
 
 ### Raid Team Colors
 
-- **RT1**: Dark Orange
-- **RT2**: Royal Blue
-- **RT3**: Blue Violet
-- **RT4**: Gold
-- **RT5**: Dark Turquoise
-- **RT6**: Deep Pink
-- **RT7**: Lime Green
-- **RT8**: Orange Red
-- **RT9**: Medium Purple
-- **RT10**: Light Sea Green
 - **ST6**: Steel Blue
 - **DIL**: Crimson
 - **TFS**: Sea Green
@@ -106,7 +94,7 @@ For issues or questions:
 
 ### No Raid Teams Showing
 
-1. Ensure raid team information is properly formatted in GRM custom notes
+1. Ensure raid team information is properly formatted in GRM custom notes (st6, dil, tfs)
 2. Check that the chat channel is enabled in settings
 3. Verify the player is a guild member
 4. Try refreshing the cache

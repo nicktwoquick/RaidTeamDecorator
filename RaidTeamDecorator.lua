@@ -10,17 +10,7 @@ local VERSION = "0.5.1"
 
 -- Raid team colors (colorblind-friendly palette)
 local raidTeamColors = {
-    ["RT1"] = "|cffFF8C00",  -- Dark Orange (high contrast, distinguishable from red/green)
-    ["RT2"] = "|cff4169E1",  -- Royal Blue (distinct from other blues)
-    ["RT3"] = "|cff8A2BE2",  -- Blue Violet (purple-blue, high contrast)
-    ["RT4"] = "|cffFFD700",  -- Gold (bright yellow, distinguishable)
-    ["RT5"] = "|cff00CED1",  -- Dark Turquoise (teal, distinct from green)
-    ["RT6"] = "|cffFF1493",  -- Deep Pink (magenta, distinct from red)
-    ["RT7"] = "|cff32CD32",  -- Lime Green (bright green, distinguishable)
-    ["RT8"] = "|cffFF4500",  -- Orange Red (orange-red, distinct from pure red)
-    ["RT9"] = "|cff9370DB",  -- Medium Purple (purple, distinct from blue)
-    ["RT10"] = "|cff20B2AA", -- Light Sea Green (teal-green, distinct from other greens)
-    -- New arbitrary raid team colors
+    -- Arbitrary raid team colors
     ["ST6"] = "|cff4682B4",  -- Steel Blue (shade of blue as requested)
     ["DIL"] = "|cffDC143C",  -- Crimson (distinct red, different from existing colors)
     ["TFS"] = "|cff2E8B57",  -- Sea Green (distinct green, different from existing colors)
@@ -454,38 +444,7 @@ function RaidTeamDecorator:ParseRaidTeamsFromNote(note)
     local raidTeams = {}
     local lowerNote = string.lower(note)
     
-    -- Pattern to match RT1, RT2, etc.
-    local rtPattern = "rt(%d+)"
-    local raidTeamPattern = "raid%s+team%s+(%d+)"
-    
-    -- Find RT1, RT2, etc. patterns
-    for rt in string.gmatch(lowerNote, rtPattern) do
-        local rtNum = tonumber(rt)
-        if rtNum and rtNum > 0 then
-            table.insert(raidTeams, "RT" .. rtNum)
-        end
-    end
-    
-    -- Find "raid team 1", "raid team 2", etc. patterns
-    for teamNum in string.gmatch(lowerNote, raidTeamPattern) do
-        local teamNumber = tonumber(teamNum)
-        if teamNumber and teamNumber > 0 then
-            local rtString = "RT" .. teamNumber
-            -- Avoid duplicates
-            local found = false
-            for _, existing in ipairs(raidTeams) do
-                if existing == rtString then
-                    found = true
-                    break
-                end
-            end
-            if not found then
-                table.insert(raidTeams, rtString)
-            end
-        end
-    end
-    
-    -- New arbitrary raid team patterns (separate logic for future extensibility)
+    -- Arbitrary raid team patterns (extensible implementation)
     -- Pattern for "st6" (case-insensitive search)
     if string.find(lowerNote, "st6") then
         local found = false
