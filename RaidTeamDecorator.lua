@@ -5,16 +5,21 @@ local RaidTeamDecorator = LibStub("AceAddon-3.0"):NewAddon("RaidTeamDecorator", 
 local AceConfig = LibStub("AceConfig-3.0")
 local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 
--- Addon version
-local VERSION = "0.5.1"
 
--- Raid team colors (colorblind-friendly palette)
-local raidTeamColors = {
-    -- Arbitrary raid team colors
-    ["ST6"] = "|cff4682B4",  -- Steel Blue (shade of blue as requested)
-    ["DIL"] = "|cffDC143C",  -- Crimson (distinct red, different from existing colors)
-    ["TFS"] = "|cff2E8B57",  -- Sea Green (distinct green, different from existing colors)
+-- Default raid team mappings (10 total)
+local defaultMappings = {
+    {tag = "ST6", pattern = "st6", color = "|cff4682B4", enabled = true},
+    {tag = "DIL", pattern = "dil", color = "|cffDC143C", enabled = true},
+    {tag = "TFS", pattern = "tfs", color = "|cff2E8B57", enabled = true},
+    {tag = "TEAM4", pattern = "team4", color = "|cffFF8C00", enabled = false},
+    {tag = "TEAM5", pattern = "team5", color = "|cff9370DB", enabled = false},
+    {tag = "TEAM6", pattern = "team6", color = "|cff20B2AA", enabled = false},
+    {tag = "TEAM7", pattern = "team7", color = "|cffFF6347", enabled = false},
+    {tag = "TEAM8", pattern = "team8", color = "|cff32CD32", enabled = false},
+    {tag = "TEAM9", pattern = "team9", color = "|cffFFD700", enabled = false},
+    {tag = "TEAM10", pattern = "team10", color = "|cffFF69B4", enabled = false}
 }
+
 
 -- Default settings
 local defaults = {
@@ -27,7 +32,9 @@ local defaults = {
     -- Tooltip settings
     enableTooltips = true,
     -- Performance settings
-    disableInRaidZones = true
+    disableInRaidZones = true,
+    -- Mapping overrides (user customizations)
+    mappingOverrides = {}
 }
 
 -- Global cache for raid team data
@@ -163,12 +170,132 @@ local options = {
             end,
             order = 5,
         },
+        mappings = {
+            type = "group",
+            name = "Raid Team Mappings",
+            desc = "Configure custom raid team mappings",
+            order = 6,
+            args = {
+                applyChanges = {
+                    type = "execute",
+                    name = "Apply Changes",
+                    desc = "Save all mapping changes and refresh cache",
+                    func = function()
+                        RaidTeamDecorator:ApplyMappingChanges()
+                    end,
+                    order = 1,
+                },
+            },
+        },
     },
 }
+
+function RaidTeamDecorator:BuildMappingOptions()
+    -- Dynamically build mapping configuration options for all 10 mappings
+    local mappingArgs = options.args.mappings.args
+    
+    for i = 1, 10 do
+        local mapping = self:GetMappingConfig(i)
+        if mapping then
+            -- Create a group for each mapping
+            mappingArgs["mapping" .. i] = {
+                type = "group",
+                name = "Mapping " .. i .. ": " .. mapping.tag,
+                order = i + 1,
+                inline = true,
+                args = {
+                    enabled = {
+                        type = "toggle",
+                        name = "Enabled",
+                        desc = "Enable or disable this mapping",
+                        get = function() 
+                            local cfg = RaidTeamDecorator:GetMappingConfig(i)
+                            return cfg and cfg.enabled or false
+                        end,
+                        set = function(info, value)
+                            RaidTeamDecorator:SaveMappingOverride(i, "enabled", value)
+                        end,
+                        order = 1,
+                    },
+                    tag = {
+                        type = "input",
+                        name = "Tag",
+                        desc = "The tag to display in chat (e.g., ST6, DIL)",
+                        get = function()
+                            local cfg = RaidTeamDecorator:GetMappingConfig(i)
+                            return cfg and cfg.tag or ""
+                        end,
+                        set = function(info, value)
+                            RaidTeamDecorator:SaveMappingOverride(i, "tag", value)
+                        end,
+                        order = 2,
+                    },
+                    pattern = {
+                        type = "input",
+                        name = "Pattern",
+                        desc = "Match pattern (alphanumeric and spaces only, use | to separate multiple patterns)",
+                        get = function()
+                            local cfg = RaidTeamDecorator:GetMappingConfig(i)
+                            return cfg and cfg.pattern or ""
+                        end,
+                        set = function(info, value)
+                            local isValid, errorMsg = RaidTeamDecorator:ValidatePattern(value)
+                            if not isValid then
+                                RaidTeamDecorator:Print("|cffFF0000Error:|r " .. errorMsg)
+                                return
+                            end
+                            RaidTeamDecorator:SaveMappingOverride(i, "pattern", value)
+                        end,
+                        order = 3,
+                    },
+                    color = {
+                        type = "color",
+                        name = "Color",
+                        desc = "Choose the color for this raid team tag",
+                        hasAlpha = false,
+                        get = function()
+                            local cfg = RaidTeamDecorator:GetMappingConfig(i)
+                            if cfg and cfg.color then
+                                -- Convert hex color to RGB (0-1 range)
+                                local hex = cfg.color:match("|cff(%x%x%x%x%x%x)")
+                                if hex then
+                                    local r = tonumber(hex:sub(1,2), 16) / 255
+                                    local g = tonumber(hex:sub(3,4), 16) / 255
+                                    local b = tonumber(hex:sub(5,6), 16) / 255
+                                    return r, g, b
+                                end
+                            end
+                            return 1, 1, 1 -- Default white
+                        end,
+                        set = function(info, r, g, b)
+                            -- Convert RGB (0-1 range) to hex color
+                            local hex = string.format("|cff%02x%02x%02x", r*255, g*255, b*255)
+                            RaidTeamDecorator:SaveMappingOverride(i, "color", hex)
+                        end,
+                        order = 4,
+                    },
+                    reset = {
+                        type = "execute",
+                        name = "Reset to Default",
+                        desc = "Reset this mapping to default values",
+                        func = function()
+                            RaidTeamDecorator:ResetMapping(i)
+                            RaidTeamDecorator:Print("Mapping " .. i .. " reset to default")
+                        end,
+                        order = 5,
+                    },
+                },
+            }
+        end
+    end
+end
 
 function RaidTeamDecorator:OnInitialize()
     -- Initialize database
     self.db = LibStub("AceDB-3.0"):New("RaidTeamDecoratorDB", {profile = defaults}, true)
+    
+    -- Build mapping options dynamically
+    self:BuildMappingOptions()
     
     -- Register configuration
     AceConfig:RegisterOptionsTable("RaidTeamDecorator", options)
@@ -431,6 +558,119 @@ function RaidTeamDecorator:DebugPrint(message)
     end
 end
 
+-- Mapping helper functions
+function RaidTeamDecorator:GetMappingConfig(index)
+    if not index or index < 1 or index > 10 then
+        return nil
+    end
+    
+    local default = defaultMappings[index]
+    if not default then
+        return nil
+    end
+    
+    -- Start with default values
+    local config = {
+        tag = default.tag,
+        pattern = default.pattern,
+        color = default.color,
+        enabled = default.enabled
+    }
+    
+    -- Apply user overrides if they exist
+    local overrides = self.db.profile.mappingOverrides[index]
+    if overrides then
+        for field, value in pairs(overrides) do
+            config[field] = value
+        end
+    end
+    
+    return config
+end
+
+function RaidTeamDecorator:GetAllMappings()
+    local mappings = {}
+    for i = 1, 10 do
+        mappings[i] = self:GetMappingConfig(i)
+    end
+    return mappings
+end
+
+function RaidTeamDecorator:SaveMappingOverride(index, field, value)
+    if not index or index < 1 or index > 10 then
+        return false
+    end
+    
+    if not self.db.profile.mappingOverrides[index] then
+        self.db.profile.mappingOverrides[index] = {}
+    end
+    
+    self.db.profile.mappingOverrides[index][field] = value
+    return true
+end
+
+function RaidTeamDecorator:ResetMapping(index)
+    if not index or index < 1 or index > 10 then
+        return false
+    end
+    
+    self.db.profile.mappingOverrides[index] = nil
+    return true
+end
+
+function RaidTeamDecorator:ConvertPatternToRegex(pattern)
+    if not pattern or pattern == "" then
+        return {}
+    end
+    
+    -- Split by | to handle OR logic properly
+    local parts = {}
+    for part in string.gmatch(pattern, "([^|]+)") do
+        -- Trim whitespace from each part
+        part = string.gsub(part, "^%s*(.-)%s*$", "%1")
+        if part ~= "" then
+            -- Escape special Lua pattern characters for each part
+            local escaped = string.gsub(part, "([%^%$%(%)%%%.%[%]%*%+%-%?])", "%%%1")
+            table.insert(parts, escaped)
+        end
+    end
+    
+    -- Return the parts array - we'll test each part individually
+    return parts
+end
+
+function RaidTeamDecorator:ValidatePattern(pattern)
+    if not pattern or pattern == "" then
+        return true, ""
+    end
+    
+    -- Only allow alphanumeric characters, spaces, and | delimiter
+    local invalidChars = string.match(pattern, "[^%w%s|]")
+    if invalidChars then
+        return false, "Pattern contains invalid character: " .. invalidChars
+    end
+    
+    return true, ""
+end
+
+function RaidTeamDecorator:ApplyMappingChanges()
+    -- Validate all patterns before applying
+    for i = 1, 10 do
+        local mapping = self:GetMappingConfig(i)
+        if mapping and mapping.pattern then
+            local isValid, errorMsg = self:ValidatePattern(mapping.pattern)
+            if not isValid then
+                self:Print("|cffFF0000Error in Mapping " .. i .. ":|r " .. errorMsg)
+                return
+            end
+        end
+    end
+    
+    -- All validations passed, refresh the cache
+    self:RefreshRaidTeamCache(true)
+    self:Print("|cff00FF00Success:|r Mapping changes applied and cache refreshed!")
+end
+
 function RaidTeamDecorator:IsInRaidZone()
     local inInstance, instanceType = IsInInstance()
     return inInstance and instanceType == "raid"
@@ -444,46 +684,41 @@ function RaidTeamDecorator:ParseRaidTeamsFromNote(note)
     local raidTeams = {}
     local lowerNote = string.lower(note)
     
-    -- Arbitrary raid team patterns (extensible implementation)
-    -- Pattern for "st6" (case-insensitive search)
-    if string.find(lowerNote, "st6") then
-        local found = false
-        for _, existing in ipairs(raidTeams) do
-            if existing == "ST6" then
-                found = true
-                break
-            end
-        end
-        if not found then
-            table.insert(raidTeams, "ST6")
-        end
-    end
+    -- Get all active mappings
+    local mappings = self:GetAllMappings()
     
-    -- Pattern for "dil" (case-insensitive search)
-    if string.find(lowerNote, "dil") then
-        local found = false
-        for _, existing in ipairs(raidTeams) do
-            if existing == "DIL" then
-                found = true
-                break
+    for _, mapping in ipairs(mappings) do
+        if mapping and mapping.enabled and mapping.pattern and mapping.pattern ~= "" then
+            -- Convert pattern to parts (for OR logic)
+            local patternParts = self:ConvertPatternToRegex(mapping.pattern)
+            
+            -- Debug output
+            self:DebugPrint("Testing mapping '" .. mapping.tag .. "' with pattern '" .. mapping.pattern .. "' against note: '" .. lowerNote .. "'")
+            self:DebugPrint("Pattern parts: " .. table.concat(patternParts, ", "))
+            
+            -- Test each part against note (OR logic)
+            local found = false
+            for _, pattern in ipairs(patternParts) do
+                if string.find(lowerNote, pattern) then
+                    found = true
+                    break
+                end
             end
-        end
-        if not found then
-            table.insert(raidTeams, "DIL")
-        end
-    end
-    
-    -- Pattern for "tfs" (case-insensitive search)
-    if string.find(lowerNote, "tfs") then
-        local found = false
-        for _, existing in ipairs(raidTeams) do
-            if existing == "TFS" then
-                found = true
-                break
+            
+            if found then
+                -- Check if this team is already added
+                local alreadyAdded = false
+                for _, existing in ipairs(raidTeams) do
+                    if existing == mapping.tag then
+                        alreadyAdded = true
+                        break
+                    end
+                end
+                
+                if not alreadyAdded then
+                    table.insert(raidTeams, mapping.tag)
+                end
             end
-        end
-        if not found then
-            table.insert(raidTeams, "TFS")
         end
     end
     
@@ -495,7 +730,18 @@ function RaidTeamDecorator:GetColoredRaidTeam(teamString)
         return ""
     end
     
-    local color = raidTeamColors[teamString] or "|cffFFFFFF"
+    -- Look up color from mapping config
+    local mappings = self:GetAllMappings()
+    local color = "|cffFFFFFF" -- Default to white
+    
+    for _, mapping in ipairs(mappings) do
+        if mapping and mapping.tag == teamString then
+            color = mapping.color or "|cffFFFFFF"
+            break
+        end
+    end
+    
+    
     return color .. teamString .. "|r"
 end
 
