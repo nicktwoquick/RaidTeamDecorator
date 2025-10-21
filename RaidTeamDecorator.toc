@@ -1,4 +1,4 @@
-## Interface: 11507
+## Interface: 11508
 ## Title: RaidTeamDecorator
 ## Notes: Displays raid team information in chat messages
 ## Author: nicktwoquick
