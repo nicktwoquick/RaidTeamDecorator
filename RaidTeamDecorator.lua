@@ -321,17 +321,12 @@ function RaidTeamDecorator:OnInitialize()
 end
 
 function RaidTeamDecorator:OnEnable()
-    self:DebugPrint("=== OnEnable called ===")
     self:RegisterEvent("ADDON_LOADED", "OnAddonLoaded")
     self:RegisterEvent("PLAYER_ENTERING_WORLD", "OnPlayerEnteringWorld")
-    self:DebugPrint("Events registered: ADDON_LOADED, PLAYER_ENTERING_WORLD")
     
     -- Initialize GRM if already loaded
     if IsAddOnLoaded("Guild_Roster_Manager") then
-        self:DebugPrint("GRM already loaded, initializing...")
         self:InitializeGRM()
-    else
-        self:DebugPrint("GRM not loaded yet")
     end
     
     -- Set up chat hooks if enabled
@@ -367,20 +362,15 @@ function RaidTeamDecorator:OnAddonLoaded(event, addonName)
 end
 
 function RaidTeamDecorator:OnPlayerEnteringWorld()
-    self:DebugPrint("Player entering world")
     -- Only initialize cache on first world entry, not every zone change
     if not cacheInitialized then
-        self:DebugPrint("Cache not initialized yet, scheduling initial refresh")
         self:ScheduleCacheRefresh()
-    else
-        self:DebugPrint("Cache already initialized, skipping refresh")
     end
 end
 
 function RaidTeamDecorator:ScheduleCacheRefresh()
     -- Check if cache refresh is already in progress
     if cacheRefreshInProgress then
-        self:DebugPrint("Cache refresh already in progress, skipping schedule")
         return
     end
     
@@ -388,7 +378,6 @@ function RaidTeamDecorator:ScheduleCacheRefresh()
         self:UpdateChatHooks()
         
         -- Schedule initial cache refresh after a delay using frame
-        self:DebugPrint("Scheduling delayed cache refresh...")
         local frame = CreateFrame("Frame")
         frame:SetScript("OnUpdate", function(frame, elapsed)
             frame.timer = (frame.timer or 0) + elapsed
@@ -398,54 +387,35 @@ function RaidTeamDecorator:ScheduleCacheRefresh()
                 frame:Hide()
             end
         end)
-        self:DebugPrint("Frame timer created successfully")
-    else
-        self:DebugPrint("Addon not enabled, skipping cache refresh")
     end
 end
 
 function RaidTeamDecorator:DelayedInitialRefresh()
-    self:DebugPrint("Running delayed initial cache refresh")
-    
     -- Check if cache refresh is already in progress
     if cacheRefreshInProgress then
-        self:DebugPrint("Cache refresh already in progress, skipping duplicate")
         return
     end
     
     if not self.db.profile.enabled then
-        self:DebugPrint("Addon not enabled, skipping cache refresh")
         return
     end
     
     -- Check if GRM is loaded and API is available
     if not IsAddOnLoaded("Guild_Roster_Manager") then
-        self:DebugPrint("GRM not loaded, skipping cache refresh")
         return
     end
-    self:DebugPrint("GRM addon is loaded, continuing...")
     
     if not GRM_API or not GRM_API.GetMember then
-        self:DebugPrint("GRM API not available or functions not ready")
         return
     end
     
     -- Set flag to prevent duplicate refreshes
     cacheRefreshInProgress = true
     
-    local success, err = pcall(function()
-        self:RefreshRaidTeamCache(false)
-    end)
+    self:RefreshRaidTeamCache(false)
     
     -- Clear flag when done
     cacheRefreshInProgress = false
-    
-    if not success then
-        self:Print("|cffFF0000Error in RefreshRaidTeamCache:|r " .. tostring(err))
-        self:DebugPrint("RefreshRaidTeamCache failed: " .. tostring(err))
-    else
-        self:DebugPrint("RefreshRaidTeamCache completed successfully")
-    end
 end
 
 function RaidTeamDecorator:InitializeGRM()
@@ -455,45 +425,33 @@ function RaidTeamDecorator:InitializeGRM()
     end
     
     self:Print("RaidTeamDecorator: Guild Roster Manager loaded successfully")
-    self:DebugPrint("GRM API initialized")
     return true
 end
 
 function RaidTeamDecorator:SlashCommand(input)
-    local success, err = pcall(function()
-        if not input or input == "" then
-            self:ShowSettings()
-            return
-        end
-        
-        local command = string.lower(input)
-        
-        if command == "refresh" then
-            self:RefreshRaidTeamCache(true)
-            self:Print("Raid team cache refreshed!")
-        elseif command == "status" then
-            self:PrintStatus()
-        elseif command == "config" or command == "settings" then
-            self:ShowSettings()
-        elseif command == "toggle" then
-            self.db.profile.enabled = not self.db.profile.enabled
-            self:UpdateChatHooks()
-            self:Print("Raid Team Decorator " .. (self.db.profile.enabled and "enabled" or "disabled"))
-        elseif command == "debug" then
-            self.db.profile.debugMode = not self.db.profile.debugMode
-            self:Print("Debug mode " .. (self.db.profile.debugMode and "enabled" or "disabled"))
-        elseif command == "tooltips" then
-            self.db.profile.enableTooltips = not self.db.profile.enableTooltips
-            -- Show reload dialog since HookScript hooks can't be removed dynamically
-            StaticPopup_Show("RAIDTEAMDECORATOR_RELOAD")
-            self:Print("Tooltips " .. (self.db.profile.enableTooltips and "enabled" or "disabled") .. " - Reload UI to apply changes")
-        else
-            self:Print("Usage: /rtd [refresh|status|config|toggle|debug|tooltips]")
-        end
-    end)
+    if not input or input == "" then
+        self:ShowSettings()
+        return
+    end
     
-    if not success then
-        self:Print("|cffFF0000Error in slash command:|r " .. tostring(err))
+    local command = string.lower(input)
+    
+    if command == "refresh" then
+        self:RefreshRaidTeamCache(true)
+        self:Print("Raid team cache refreshed!")
+    elseif command == "status" then
+        self:PrintStatus()
+    elseif command == "config" or command == "settings" then
+        self:ShowSettings()
+    elseif command == "toggle" then
+        self.db.profile.enabled = not self.db.profile.enabled
+        self:UpdateChatHooks()
+        self:Print("Raid Team Decorator " .. (self.db.profile.enabled and "enabled" or "disabled"))
+    elseif command == "debug" then
+        self.db.profile.debugMode = not self.db.profile.debugMode
+        self:Print("Debug mode " .. (self.db.profile.debugMode and "enabled" or "disabled"))
+    else
+        self:Print("Usage: /rtd [refresh|status|config|toggle|debug]")
     end
 end
 
@@ -692,9 +650,6 @@ function RaidTeamDecorator:ParseRaidTeamsFromNote(note)
             -- Convert pattern to parts (for OR logic)
             local patternParts = self:ConvertPatternToRegex(mapping.pattern)
             
-            -- Debug output
-            self:DebugPrint("Testing mapping '" .. mapping.tag .. "' with pattern '" .. mapping.pattern .. "' against note: '" .. lowerNote .. "'")
-            self:DebugPrint("Pattern parts: " .. table.concat(patternParts, ", "))
             
             -- Test each part against note (OR logic)
             local found = false
@@ -746,17 +701,12 @@ function RaidTeamDecorator:GetColoredRaidTeam(teamString)
 end
 
 function RaidTeamDecorator:RefreshRaidTeamCache(forceRefresh)
-    local isManualRefresh = forceRefresh or false
-    self:DebugPrint("Starting cache refresh..." .. (isManualRefresh and " (manual refresh)" or " (automatic initialization)"))
-    
     if not IsInGuild() then
-        self:DebugPrint("Not in a guild, skipping cache refresh")
         self:Print("|cffFF0000Error:|r You must be in a guild to use RaidTeamDecorator")
         return
     end
     
     if not GRM_API or not GRM_API.GetMember then
-        self:DebugPrint("GRM API not available or missing GetMember function")
         self:Print("|cffFF0000Error:|r Guild Roster Manager (GRM) not found or API not available")
         return
     end
@@ -766,17 +716,12 @@ function RaidTeamDecorator:RefreshRaidTeamCache(forceRefresh)
         RaidTeamCache[k] = nil
     end
     
-    self:DebugPrint("Refreshing raid team cache...")
-    
     -- Get guild name
     local guildName = GetGuildInfo("player")
     if not guildName then
-        self:DebugPrint("Could not get guild name")
         self:Print("|cffFF0000Error:|r Could not get guild name")
         return
     end
-    
-    self:DebugPrint("Guild name: " .. guildName)
     
     -- Process guild members
     local memberCount = 0
@@ -785,7 +730,6 @@ function RaidTeamDecorator:RefreshRaidTeamCache(forceRefresh)
     
     -- Get all guild members
     local numMembers = GetNumGuildMembers()
-    self:DebugPrint("Total guild members: " .. numMembers)
     
     for i = 1, numMembers do
         local name, rank, rankIndex, level, class, zone, note, officernote, online, status, classFileName, achievementPoints, achievementRank, isMobile, canSoR, repStanding = GetGuildRosterInfo(i)
@@ -797,12 +741,9 @@ function RaidTeamDecorator:RefreshRaidTeamCache(forceRefresh)
             local success, memberData = pcall(GRM_API.GetMember, name)
             if success and memberData then
                 grmMemberCount = grmMemberCount + 1
-                self:DebugPrint("GRM data for " .. name .. ": " .. (memberData and "found" or "nil"))
                 
                 if memberData.customNote and memberData.customNote[4] then
                     local customNote = memberData.customNote[4]
-                    self:DebugPrint("Custom note for " .. name .. ": " .. customNote)
-                    
                     local raidTeams = self:ParseRaidTeamsFromNote(customNote)
                     
                     if #raidTeams > 0 then
@@ -810,38 +751,23 @@ function RaidTeamDecorator:RefreshRaidTeamCache(forceRefresh)
                         local playerNameOnly = string.match(name, "^([^-]+)")
                         RaidTeamCache[playerNameOnly] = raidTeams
                         raidTeamCount = raidTeamCount + 1
-                        self:DebugPrint("Cached '" .. playerNameOnly .. "' (from '" .. name .. "'): " .. table.concat(raidTeams, ", "))
-                    else
-                        self:DebugPrint("No raid teams found in note for " .. name)
                     end
-                else
-                    self:DebugPrint("No custom note for " .. name)
                 end
                 
                 -- Handle alt group propagation
                 if memberData.altGroup and memberData.altGroup ~= "" then
-                    local success, err = pcall(function()
-                        self:ProcessAltGroup(name, memberData.altGroup)
-                    end)
-                    if not success then
-                        self:DebugPrint("Error in ProcessAltGroup for " .. name .. ": " .. tostring(err))
-                    end
+                    self:ProcessAltGroup(name, memberData.altGroup)
                 end
-            else
-                self:DebugPrint("Failed to get GRM data for " .. name)
             end
         end
     end
     
-    self:DebugPrint(string.format("Cache refresh complete: %d members processed, %d GRM members found, %d with raid teams", memberCount, grmMemberCount, raidTeamCount))
-    
     -- Mark cache as initialized after successful refresh
     cacheInitialized = true
-    self:DebugPrint("Cache initialization flag set to true")
     
     if raidTeamCount == 0 then
         self:Print("|cffFFFF00Warning:|r No raid teams found. Check that:")
-        self:Print("1. GRM custom notes contain raid team info (RT1, RT2, etc.)")
+        self:Print("1. GRM custom notes contain raid team info (st6, dil, tfs, etc.)")
         self:Print("2. You have permission to read custom notes")
         self:Print("3. GRM is properly configured")
     else
@@ -856,14 +782,12 @@ function RaidTeamDecorator:ProcessAltGroup(playerName, altGroup)
     
     -- Check if GetMemberAlts function exists
     if not GRM_API.GetMemberAlts then
-        self:DebugPrint("GRM_API.GetMemberAlts not available, skipping alt group processing")
         return
     end
     
     -- Get all alts in the group
     local success, alts = pcall(GRM_API.GetMemberAlts, playerName)
     if not success then
-        self:DebugPrint("Error calling GRM_API.GetMemberAlts for " .. playerName .. ": " .. tostring(alts))
         return
     end
     
@@ -897,8 +821,6 @@ function RaidTeamDecorator:ProcessAltGroup(playerName, altGroup)
                     raidTeamSet[team] = true
                 end
             end
-        elseif not success then
-            self:DebugPrint("Error getting GRM data for alt " .. altName .. ": " .. tostring(altData))
         end
     end
     
@@ -911,7 +833,6 @@ function RaidTeamDecorator:ProcessAltGroup(playerName, altGroup)
             local altNameOnly = string.match(altName, "^([^-]+)")
             RaidTeamCache[altNameOnly] = allRaidTeams
         end
-        self:DebugPrint(string.format("Alt group %s: %d raid teams applied to %d characters", altGroup, #allRaidTeams, #alts + 1))
     end
 end
 
@@ -987,8 +908,6 @@ function RaidTeamDecorator:UpdateTooltipHooks()
     end
 end
 
--- Removed HookGameTooltip() and HookTooltip() functions as they are no longer needed
--- We only use the OnTooltipSetUnit event which is handled directly in UpdateTooltipHooks()
 
 function RaidTeamDecorator:AddRaidTeamToTooltip(tooltip, unit)
     -- If unit is nil, try to get it from the tooltip
@@ -1003,7 +922,6 @@ function RaidTeamDecorator:AddRaidTeamToTooltip(tooltip, unit)
     
     -- Check if we should disable in raid zones
     if self.db.profile.disableInRaidZones and self:IsInRaidZone() then
-        self:DebugPrint("In raid zone, skipping tooltip processing for performance")
         return
     end
     
@@ -1056,9 +974,6 @@ function RaidTeamDecorator:AddRaidTeamToTooltip(tooltip, unit)
     local raidTeams = self:GetPlayerRaidTeams(name)
     
     if #raidTeams > 0 then
-        -- Debug: Only show debug message when player actually has raid teams
-        self:DebugPrint("Raid teams found for " .. name .. ": " .. table.concat(raidTeams, ", "))
-        
         -- Add a blank line for spacing
         tooltip:AddLine(" ")
         
@@ -1141,59 +1056,39 @@ function RaidTeamDecorator:ChatMessageFilter(event, msg, sender, ...)
         return false, msg, sender, ...
     end
     
-    -- Debug: Log the sender name
-    self:DebugPrint("Processing chat message - Event: " .. event .. ", Sender: '" .. sender .. "'")
-    
     -- Get raid teams for the sender (handles realm name stripping internally)
-    local success, raidTeams = pcall(function() return self:GetPlayerRaidTeams(sender) end)
-    if not success then
-        self:Print("|cffFF0000[ERROR]|r GetPlayerRaidTeams failed: " .. tostring(raidTeams))
-        return false, msg, sender, ...
-    end
-    
-    self:DebugPrint("Raid teams found for '" .. sender .. "': " .. (#raidTeams > 0 and table.concat(raidTeams, ", ") or "none"))
+    local raidTeams = self:GetPlayerRaidTeams(sender)
     
     if #raidTeams > 0 then
-        local success3, err3 = pcall(function()
-            -- Check if message already has a raid team prefix to prevent duplicates
-            local hasExistingPrefix = false
-            
-            -- First check for any existing RT pattern in the message
-            if string.find(msg, "%[RT%d+%]:") then
-                hasExistingPrefix = true
-            else
-                -- Also check for colored versions of the current player's teams
-                for _, team in ipairs(raidTeams) do
-                    local coloredTeam = self:GetColoredRaidTeam(team)
-                    if string.find(msg, "[" .. coloredTeam .. "]:", 1, true) then
-                        hasExistingPrefix = true
-                        break
-                    end
+        -- Check if message already has a raid team prefix to prevent duplicates
+        local hasExistingPrefix = false
+        
+        -- First check for any existing RT pattern in the message
+        if string.find(msg, "%[RT%d+%]:") then
+            hasExistingPrefix = true
+        else
+            -- Also check for colored versions of the current player's teams
+            for _, team in ipairs(raidTeams) do
+                local coloredTeam = self:GetColoredRaidTeam(team)
+                if string.find(msg, "[" .. coloredTeam .. "]:", 1, true) then
+                    hasExistingPrefix = true
+                    break
                 end
             end
-            
-            -- Only add prefix if it doesn't already exist
-            if not hasExistingPrefix then
-                -- Create colored raid team prefix
-                local coloredTeams = {}
-                for _, team in ipairs(raidTeams) do
-                    table.insert(coloredTeams, self:GetColoredRaidTeam(team))
-                end
-                local raidTeamPrefix = "[" .. table.concat(coloredTeams, ",") .. "]: "
-                
-                -- Prepend to message
-                msg = raidTeamPrefix .. msg
-                self:DebugPrint("Applied raid team prefix: " .. raidTeamPrefix)
-            else
-                self:DebugPrint("Message already has raid team prefix, skipping")
-            end
-        end)
-        if not success3 then
-            self:Print("|cffFF0000[ERROR]|r Message processing failed: " .. tostring(err3))
-            return false, msg, sender, ...
         end
-    else
-        self:DebugPrint("No raid teams found for sender: " .. sender)
+        
+        -- Only add prefix if it doesn't already exist
+        if not hasExistingPrefix then
+            -- Create colored raid team prefix
+            local coloredTeams = {}
+            for _, team in ipairs(raidTeams) do
+                table.insert(coloredTeams, self:GetColoredRaidTeam(team))
+            end
+            local raidTeamPrefix = "[" .. table.concat(coloredTeams, ",") .. "]: "
+            
+            -- Prepend to message
+            msg = raidTeamPrefix .. msg
+        end
     end
     
     return false, msg, sender, ...
