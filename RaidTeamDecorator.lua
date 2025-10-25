@@ -326,7 +326,10 @@ function RaidTeamDecorator:OnEnable()
     
     -- Initialize GRM if already loaded
     if IsAddOnLoaded("Guild_Roster_Manager") then
+        self:DebugPrint("GRM already loaded, initializing...")
         self:InitializeGRM()
+    else
+        self:DebugPrint("GRM not loaded yet, waiting for ADDON_LOADED event")
     end
     
     -- Set up chat hooks if enabled
@@ -357,6 +360,7 @@ end
 
 function RaidTeamDecorator:OnAddonLoaded(event, addonName)
     if addonName == "Guild_Roster_Manager" then
+        self:DebugPrint("GRM addon loaded, initializing...")
         self:InitializeGRM()
     end
 end
@@ -393,21 +397,27 @@ end
 function RaidTeamDecorator:DelayedInitialRefresh()
     -- Check if cache refresh is already in progress
     if cacheRefreshInProgress then
+        self:DebugPrint("Cache refresh already in progress, skipping")
         return
     end
     
     if not self.db.profile.enabled then
+        self:DebugPrint("Addon disabled, skipping cache refresh")
         return
     end
     
     -- Check if GRM is loaded and API is available
     if not IsAddOnLoaded("Guild_Roster_Manager") then
+        self:DebugPrint("GRM not loaded, skipping cache refresh")
         return
     end
     
     if not GRM_API or not GRM_API.GetMember then
+        self:DebugPrint("GRM API not available, skipping cache refresh")
         return
     end
+    
+    self:DebugPrint("Starting initial cache refresh...")
     
     -- Set flag to prevent duplicate refreshes
     cacheRefreshInProgress = true
@@ -416,6 +426,7 @@ function RaidTeamDecorator:DelayedInitialRefresh()
     
     -- Clear flag when done
     cacheRefreshInProgress = false
+    self:DebugPrint("Initial cache refresh completed")
 end
 
 function RaidTeamDecorator:InitializeGRM()
@@ -656,6 +667,7 @@ function RaidTeamDecorator:ParseRaidTeamsFromNote(note)
             for _, pattern in ipairs(patternParts) do
                 if string.find(lowerNote, pattern) then
                     found = true
+                    self:DebugPrint(string.format("Pattern match: '%s' found '%s' in note", mapping.tag, pattern))
                     break
                 end
             end
@@ -701,6 +713,9 @@ function RaidTeamDecorator:GetColoredRaidTeam(teamString)
 end
 
 function RaidTeamDecorator:RefreshRaidTeamCache(forceRefresh)
+    local isManualRefresh = forceRefresh or false
+    self:DebugPrint("Starting cache refresh..." .. (isManualRefresh and " (manual)" or " (automatic)"))
+    
     if not IsInGuild() then
         self:Print("|cffFF0000Error:|r You must be in a guild to use RaidTeamDecorator")
         return
@@ -722,6 +737,8 @@ function RaidTeamDecorator:RefreshRaidTeamCache(forceRefresh)
         self:Print("|cffFF0000Error:|r Could not get guild name")
         return
     end
+    
+    self:DebugPrint("Processing guild: " .. guildName)
     
     -- Process guild members
     local memberCount = 0
@@ -764,6 +781,7 @@ function RaidTeamDecorator:RefreshRaidTeamCache(forceRefresh)
     
     -- Mark cache as initialized after successful refresh
     cacheInitialized = true
+    self:DebugPrint(string.format("Cache refresh complete: %d members processed, %d with raid teams", memberCount, raidTeamCount))
     
     if raidTeamCount == 0 then
         self:Print("|cffFFFF00Warning:|r No raid teams found. Check that:")
@@ -833,6 +851,7 @@ function RaidTeamDecorator:ProcessAltGroup(playerName, altGroup)
             local altNameOnly = string.match(altName, "^([^-]+)")
             RaidTeamCache[altNameOnly] = allRaidTeams
         end
+        self:DebugPrint(string.format("Alt group '%s': %d raid teams applied to %d characters", altGroup, #allRaidTeams, #alts + 1))
     end
 end
 
