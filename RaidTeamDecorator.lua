@@ -299,7 +299,7 @@ function RaidTeamDecorator:OnInitialize()
     
     -- Register configuration
     AceConfig:RegisterOptionsTable("RaidTeamDecorator", options)
-    AceConfigDialog:AddToBlizOptions("RaidTeamDecorator", "Raid Team Decorator")
+    self.optionsFrame, self.optionsCategoryID = AceConfigDialog:AddToBlizOptions("RaidTeamDecorator", "Raid Team Decorator")
     
     -- Register slash commands
     self:RegisterChatCommand("rtd", "SlashCommand")
@@ -467,11 +467,17 @@ function RaidTeamDecorator:SlashCommand(input)
 end
 
 function RaidTeamDecorator:ShowSettings()
-    if Settings and Settings.OpenToCategory then
-        Settings.OpenToCategory("Raid Team Decorator")
+    if Settings and Settings.OpenToCategory and self.optionsCategoryID then
+        Settings.OpenToCategory(self.optionsCategoryID)
+    elseif self.optionsFrame then
+        InterfaceOptionsFrame_OpenToCategory(self.optionsFrame)
     else
-        -- Fallback for older versions
-        InterfaceOptionsFrame_OpenToCategory("Raid Team Decorator")
+        -- Fallback if addon not fully initialized
+        if Settings and Settings.OpenToCategory then
+            Settings.OpenToCategory("Raid Team Decorator")
+        else
+            InterfaceOptionsFrame_OpenToCategory("Raid Team Decorator")
+        end
     end
 end
 
