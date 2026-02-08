@@ -8,9 +8,9 @@ local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 
 -- Default raid team mappings (10 total)
 local defaultMappings = {
-    {tag = "ST6", pattern = "st6", color = "|cff4682B4", enabled = true},
-    {tag = "DIL", pattern = "dil", color = "|cffDC143C", enabled = true},
-    {tag = "TFS", pattern = "tfs", color = "|cff2E8B57", enabled = true},
+    {tag = "TEAM1", pattern = "team1", color = "|cff4682B4", enabled = true},
+    {tag = "TEAM2", pattern = "team2", color = "|cffDC143C", enabled = true},
+    {tag = "TEAM3", pattern = "team3", color = "|cff2E8B57", enabled = true},
     {tag = "TEAM4", pattern = "team4", color = "|cffFF8C00", enabled = false},
     {tag = "TEAM5", pattern = "team5", color = "|cff9370DB", enabled = false},
     {tag = "TEAM6", pattern = "team6", color = "|cff20B2AA", enabled = false},
@@ -220,7 +220,7 @@ function RaidTeamDecorator:BuildMappingOptions()
                     tag = {
                         type = "input",
                         name = "Tag",
-                        desc = "The tag to display in chat (e.g., ST6, DIL)",
+                        desc = "The tag to display in chat",
                         get = function()
                             local cfg = RaidTeamDecorator:GetMappingConfig(i)
                             return cfg and cfg.tag or ""
@@ -791,7 +791,7 @@ function RaidTeamDecorator:RefreshRaidTeamCache(forceRefresh)
     
     if raidTeamCount == 0 then
         self:Print("|cffFFFF00Warning:|r No raid teams found. Check that:")
-        self:Print("1. GRM custom notes contain raid team info (st6, dil, tfs, etc.)")
+        self:Print("1. GRM custom notes contain raid team info")
         self:Print("2. You have permission to read custom notes")
         self:Print("3. GRM is properly configured")
     else

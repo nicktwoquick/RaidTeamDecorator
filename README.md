@@ -39,19 +39,18 @@ Once installed, the addon will automatically:
 
 ### Raid Team Format
 
-The addon recognizes patterns in GRM custom notes (field 4). By default, it looks for:
-- `st6`, `dil`, `tfs` (case insensitive, displayed as ST6, DIL, TFS)
+The addon recognizes patterns in GRM custom notes (field 4). By default, it looks for placeholders of TEAM1, TEAM2, etc.
 
 You can customize up to 10 different raid team patterns using the settings panel. Patterns support:
-- **OR Logic**: Use `|` to separate multiple patterns (e.g., `st6|team6|raid6`)
+- **OR Logic**: Use `|` to separate multiple patterns (e.g., `this|orthis|orthat`)
 - **Case Insensitive**: All matching is case-insensitive
 - **Alphanumeric Only**: Patterns can contain letters, numbers, and spaces
 
 ### Default Raid Team Colors
 
-- **ST6**: Steel Blue
-- **DIL**: Crimson  
-- **TFS**: Sea Green
+- **TEAM1**: Steel Blue
+- **TEAM2**: Crimson  
+- **TEAM3**: Sea Green
 - **TEAM4-10**: Various colors (disabled by default)
 
 All colors can be customized in the settings panel.
@@ -84,8 +83,8 @@ Available settings:
   - **Disable in Raid Zones**: Automatically disable in raid instances for performance
 - **Raid Team Mappings**: Configure up to 10 custom raid team patterns
   - Enable/disable each mapping
-  - Set custom tags (e.g., "ST6", "DIL")
-  - Configure match patterns (e.g., "st6", "dil|team6")
+  - Set custom tags
+  - Configure match patterns
   - Choose custom colors
   - Reset to defaults
 - **Refresh Cache**: Manually refresh raid team data
@@ -118,7 +117,7 @@ For issues or questions:
 
 ### No Raid Teams Showing
 
-1. Ensure raid team information is properly formatted in GRM custom notes (st6, dil, tfs)
+1. Ensure raid team information is properly formatted in GRM custom notes
 2. Check that the chat channel is enabled in settings
 3. Verify the player is a guild member
 4. Try refreshing the cache with `/rtd refresh`
@@ -127,7 +126,7 @@ For issues or questions:
 ### Custom Patterns Not Working
 
 1. Check that the pattern uses only alphanumeric characters and spaces
-2. Use `|` to separate multiple patterns (e.g., `st6|team6`)
+2. Use `|` to separate multiple patterns
 3. Ensure the mapping is enabled in settings
 4. Apply changes using the "Apply Changes" button in settings
 
