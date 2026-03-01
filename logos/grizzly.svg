@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <circle cx="32" cy="32" r="30" fill="#2a1505" stroke="#8B4513" stroke-width="2.5"/>
+  
+  <!-- Mountain silhouette behind -->
+  <polygon points="8,52 20,28 28,38 38,20 50,38 56,52" fill="#4a2008" opacity="0.8"/>
+  
+  <!-- Bear head - side/3-quarter profile, roaring -->
+  <!-- Head shape -->
+  <ellipse cx="33" cy="34" rx="17" ry="15" fill="#8B4513"/>
+  
+  <!-- Left ear -->
+  <circle cx="19" cy="21" r="6.5" fill="#8B4513"/>
+  <circle cx="19" cy="21" r="3.5" fill="#6b3410"/>
+  
+  <!-- Right ear -->
+  <circle cx="46" cy="20" r="6.5" fill="#8B4513"/>
+  <circle cx="46" cy="20" r="3.5" fill="#6b3410"/>
+  
+  <!-- Brow ridge - heavy/angry -->
+  <path d="M18 27 Q25 22 32 24 Q39 22 46 27" fill="none" stroke="#5a2c0a" stroke-width="4" stroke-linecap="round"/>
+  
+  <!-- Eyes - angry narrow slits -->
+  <ellipse cx="26" cy="30" rx="3.5" ry="2" fill="#1a0800"/>
+  <ellipse cx="40" cy="30" rx="3.5" ry="2" fill="#1a0800"/>
+  <circle cx="27" cy="29.5" r="0.8" fill="#ff8c00" opacity="0.8"/>
+  <circle cx="41" cy="29.5" r="0.8" fill="#ff8c00" opacity="0.8"/>
+  
+  <!-- Snout/muzzle - pushed forward for roaring look -->
+  <ellipse cx="33" cy="40" rx="9" ry="7" fill="#a05a2c"/>
+  
+  <!-- Open mouth / roar -->
+  <path d="M24 40 Q33 50 42 40" fill="#3d0000"/>
+  <!-- Teeth -->
+  <polygon points="27,40 29,45 31,40" fill="white"/>
+  <polygon points="31,40 33,46 35,40" fill="white"/>
+  <polygon points="35,40 37,45 39,40" fill="white"/>
+  <!-- Fangs -->
+  <polygon points="24,39 26,44 28,38" fill="white"/>
+  <polygon points="40,38 42,44 44,39" fill="white"/>
+  
+  <!-- Nose -->
+  <ellipse cx="33" cy="35" rx="4" ry="3" fill="#1a0800"/>
+</svg>

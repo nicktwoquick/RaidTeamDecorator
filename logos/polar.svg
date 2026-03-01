@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Background circle -->
+  <circle cx="32" cy="32" r="30" fill="#1a3a4a" stroke="#ADEBFF" stroke-width="2.5"/>
+  
+  <!-- Bear head - white/ice colored -->
+  <ellipse cx="32" cy="36" rx="18" ry="16" fill="#e8f8ff" stroke="#ADEBFF" stroke-width="1.5"/>
+  
+  <!-- Left ear -->
+  <circle cx="17" cy="22" r="7" fill="#e8f8ff" stroke="#ADEBFF" stroke-width="1.5"/>
+  <circle cx="17" cy="22" r="4" fill="#c8eeff"/>
+  
+  <!-- Right ear -->
+  <circle cx="47" cy="22" r="7" fill="#e8f8ff" stroke="#ADEBFF" stroke-width="1.5"/>
+  <circle cx="47" cy="22" r="4" fill="#c8eeff"/>
+  
+  <!-- Eyes -->
+  <circle cx="25" cy="33" r="3" fill="#1a3a4a"/>
+  <circle cx="39" cy="33" r="3" fill="#1a3a4a"/>
+  <circle cx="26" cy="32" r="1" fill="white"/>
+  <circle cx="40" cy="32" r="1" fill="white"/>
+  
+  <!-- Snout -->
+  <ellipse cx="32" cy="41" rx="7" ry="5" fill="#c8eeff" stroke="#ADEBFF" stroke-width="1"/>
+  <!-- Nose -->
+  <ellipse cx="32" cy="39" rx="3" ry="2" fill="#1a3a4a"/>
+  
+  <!-- Snowflake on forehead -->
+  <g transform="translate(32,24)" stroke="#ADEBFF" stroke-width="2" stroke-linecap="round">
+    <line x1="0" y1="-6" x2="0" y2="6"/>
+    <line x1="-6" y1="0" x2="6" y2="0"/>
+    <line x1="-4.2" y1="-4.2" x2="4.2" y2="4.2"/>
+    <line x1="4.2" y1="-4.2" x2="-4.2" y2="4.2"/>
+    <!-- Snowflake tips -->
+    <line x1="-1.5" y1="-4.5" x2="0" y2="-6"/><line x1="1.5" y1="-4.5" x2="0" y2="-6"/>
+    <line x1="4.5" y1="-1.5" x2="6" y2="0"/><line x1="4.5" y1="1.5" x2="6" y2="0"/>
+    <line x1="1.5" y1="4.5" x2="0" y2="6"/><line x1="-1.5" y1="4.5" x2="0" y2="6"/>
+    <line x1="-4.5" y1="1.5" x2="-6" y2="0"/><line x1="-4.5" y1="-1.5" x2="-6" y2="0"/>
+  </g>
+</svg>

@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <circle cx="32" cy="32" r="30" fill="#2a1f18" stroke="#D2B48C" stroke-width="2.5"/>
+  
+  <!-- Classic teddy bear - very simple geometry -->
+  
+  <!-- Body (just visible at bottom) -->
+  <ellipse cx="32" cy="55" rx="12" ry="8" fill="#D2B48C"/>
+  
+  <!-- Head - perfectly round -->
+  <circle cx="32" cy="34" r="18" fill="#D2B48C"/>
+  
+  <!-- Ears - round circles, classic teddy -->
+  <circle cx="16" cy="18" r="7" fill="#D2B48C"/>
+  <circle cx="16" cy="18" r="4" fill="#c9a882"/>
+  <circle cx="48" cy="18" r="7" fill="#D2B48C"/>
+  <circle cx="48" cy="18" r="4" fill="#c9a882"/>
+  
+  <!-- Face - soft inner face area -->
+  <ellipse cx="32" cy="37" rx="12" ry="10" fill="#e8cda8"/>
+  
+  <!-- BUTTON NOSE - classic teddy feature -->
+  <circle cx="32" cy="34" r="4" fill="#2a1f18"/>
+  <circle cx="32" cy="34" r="2" fill="#1a0f08"/>
+  <!-- Nose shine -->
+  <circle cx="31" cy="33" r="0.8" fill="#555"/>
+  
+  <!-- BUTTON EYES - the most classic teddy feature -->
+  <circle cx="24" cy="28" r="4" fill="#1a0f08"/>
+  <circle cx="40" cy="28" r="4" fill="#1a0f08"/>
+  <!-- Button holes/stitching -->
+  <circle cx="24" cy="28" r="2" fill="#2a1f18"/>
+  <line x1="22" y1="28" x2="26" y2="28" stroke="#333" stroke-width="0.8"/>
+  <line x1="24" y1="26" x2="24" y2="30" stroke="#333" stroke-width="0.8"/>
+  <circle cx="40" cy="28" r="2" fill="#2a1f18"/>
+  <line x1="38" y1="28" x2="42" y2="28" stroke="#333" stroke-width="0.8"/>
+  <line x1="40" y1="26" x2="40" y2="30" stroke="#333" stroke-width="0.8"/>
+  
+  <!-- Simple stitched smile -->
+  <path d="M26 40 Q32 46 38 40" fill="none" stroke="#2a1f18" stroke-width="2" stroke-linecap="round" stroke-dasharray="2,1"/>
+  
+  <!-- Seam line on forehead (stitching detail) -->
+  <line x1="32" y1="18" x2="32" y2="26" stroke="#c9a882" stroke-width="1" stroke-dasharray="2,2"/>
+</svg>
