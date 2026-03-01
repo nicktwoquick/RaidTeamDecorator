@@ -6,16 +6,16 @@ local AceConfig = LibStub("AceConfig-3.0")
 local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 
 
--- Default raid team mappings (10 total)
+-- Default raid team mappings (8 named + 2 placeholder)
 local defaultMappings = {
-    {tag = "TEAM1", pattern = "team1", color = "|cff4682B4", enabled = true},
-    {tag = "TEAM2", pattern = "team2", color = "|cffDC143C", enabled = true},
-    {tag = "TEAM3", pattern = "team3", color = "|cff2E8B57", enabled = true},
-    {tag = "TEAM4", pattern = "team4", color = "|cffFF8C00", enabled = false},
-    {tag = "TEAM5", pattern = "team5", color = "|cff9370DB", enabled = false},
-    {tag = "TEAM6", pattern = "team6", color = "|cff20B2AA", enabled = false},
-    {tag = "TEAM7", pattern = "team7", color = "|cffFF6347", enabled = false},
-    {tag = "TEAM8", pattern = "team8", color = "|cff32CD32", enabled = false},
+    {tag = "P", pattern = "polar", color = "|cff4682B4", enabled = true},
+    {tag = "F", pattern = "flex", color = "|cffDC143C", enabled = true},
+    {tag = "Y", pattern = "yogi", color = "|cff2E8B57", enabled = true},
+    {tag = "T", pattern = "ted", color = "|cffFF8C00", enabled = true},
+    {tag = "W", pattern = "winnie", color = "|cff9370DB", enabled = true},
+    {tag = "S", pattern = "smokey", color = "|cff20B2AA", enabled = true},
+    {tag = "B", pattern = "baloo", color = "|cffFF6347", enabled = true},
+    {tag = "G", pattern = "grizzly", color = "|cff32CD32", enabled = true},
     {tag = "TEAM9", pattern = "team9", color = "|cffFFD700", enabled = false},
     {tag = "TEAM10", pattern = "team10", color = "|cffFF69B4", enabled = false}
 }
@@ -34,7 +34,9 @@ local defaults = {
     -- Performance settings
     disableInRaidZones = true,
     -- Mapping overrides (user customizations)
-    mappingOverrides = {}
+    mappingOverrides = {},
+    -- One-time migration marker: when true, we have already clobbered user mappings to new defaults (do not clobber again)
+    mappingsClobberedV1 = false,
 }
 
 -- Global cache for raid team data
@@ -293,6 +295,12 @@ end
 function RaidTeamDecorator:OnInitialize()
     -- Initialize database
     self.db = LibStub("AceDB-3.0"):New("RaidTeamDecoratorDB", {profile = defaults}, true)
+
+    -- One-time clobber: reset all user mapping overrides to new defaults, then set marker so we never do it again
+    if not self.db.profile.mappingsClobberedV1 then
+        self.db.profile.mappingOverrides = {}
+        self.db.profile.mappingsClobberedV1 = true
+    end
     
     -- Build mapping options dynamically
     self:BuildMappingOptions()
