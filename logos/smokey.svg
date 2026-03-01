@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <circle cx="32" cy="32" r="30" fill="#0d2211" stroke="#228B22" stroke-width="2.5"/>
+  
+  <!-- Bear head -->
+  <ellipse cx="32" cy="40" rx="16" ry="13" fill="#5c3a1e"/>
+  
+  <!-- Ears (peeking below hat brim) -->
+  <circle cx="18" cy="30" r="5.5" fill="#5c3a1e"/>
+  <circle cx="18" cy="30" r="3" fill="#4a2e18"/>
+  <circle cx="46" cy="30" r="5.5" fill="#5c3a1e"/>
+  <circle cx="46" cy="30" r="3" fill="#4a2e18"/>
+  
+  <!-- RANGER HAT - the key distinguishing feature -->
+  <!-- Hat brim - wide flat brim -->
+  <rect x="9" y="28" width="46" height="5" rx="2" fill="#1a5c1a" stroke="#228B22" stroke-width="1"/>
+  <!-- Hat crown -->
+  <rect x="19" y="10" width="26" height="20" rx="3" fill="#228B22" stroke="#1a5c1a" stroke-width="1.5"/>
+  <!-- Hat band -->
+  <rect x="19" y="25" width="26" height="4" fill="#1a5c1a"/>
+  <!-- Badge on hat -->
+  <polygon points="32,14 33.5,18 37.5,18 34.5,20.5 35.5,24.5 32,22 28.5,24.5 29.5,20.5 26.5,18 30.5,18" fill="#FFD700" stroke="#cc9900" stroke-width="0.5"/>
+  
+  <!-- Eyes -->
+  <circle cx="26" cy="38" r="3" fill="#1a0800"/>
+  <circle cx="38" cy="38" r="3" fill="#1a0800"/>
+  <circle cx="27" cy="37" r="1" fill="white"/>
+  <circle cx="39" cy="37" r="1" fill="white"/>
+  
+  <!-- Snout -->
+  <ellipse cx="32" cy="44" rx="7" ry="5.5" fill="#7a4e2e"/>
+  <ellipse cx="32" cy="42" rx="3" ry="2" fill="#1a0800"/>
+  <!-- Smile -->
+  <path d="M28 46 Q32 50 36 46" fill="none" stroke="#1a0800" stroke-width="1.5" stroke-linecap="round"/>
+</svg>
