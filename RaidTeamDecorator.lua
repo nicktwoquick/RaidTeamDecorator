@@ -325,7 +325,7 @@ function RaidTeamDecorator:OnEnable()
     self:RegisterEvent("PLAYER_ENTERING_WORLD", "OnPlayerEnteringWorld")
     
     -- Initialize GRM if already loaded
-    if IsAddOnLoaded("Guild_Roster_Manager") then
+    if (C_AddOns.IsAddOnLoaded("Guild_Roster_Manager")) then
         self:DebugPrint("GRM already loaded, initializing...")
         self:InitializeGRM()
     else
@@ -407,7 +407,7 @@ function RaidTeamDecorator:DelayedInitialRefresh()
     end
     
     -- Check if GRM is loaded and API is available
-    if not IsAddOnLoaded("Guild_Roster_Manager") then
+    if not (C_AddOns.IsAddOnLoaded("Guild_Roster_Manager")) then
         self:DebugPrint("GRM not loaded, skipping cache refresh")
         return
     end
