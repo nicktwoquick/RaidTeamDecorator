@@ -5,7 +5,4 @@ move-folders:
   libs: libs
 
 ignore:
-    - .github/
-    - .gitignore
-
-enable-nolib-creation: no
+  - .github
