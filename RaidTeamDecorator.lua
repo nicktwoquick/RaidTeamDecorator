@@ -31,6 +31,7 @@ local defaults = {
     debugMode = false,
     -- Tooltip settings
     enableTooltips = true,
+    useRaidTeamIcon = false,
     -- Performance settings
     disableInRaidZones = true,
     -- Mapping overrides (user customizations)
@@ -56,6 +57,9 @@ local chatFilterFunctions = {}
 
 -- Store tooltip hook references for proper cleanup
 local tooltipHooks = {}
+
+-- Store original chat hyperlink handlers for proper chaining and cleanup
+local chatHyperlinkOriginals = {}
 
 -- Configuration options
 local options = {
@@ -159,6 +163,16 @@ local options = {
                         RaidTeamDecorator.db.profile.disableInRaidZones = value
                     end,
                     order = 2,
+                },
+                useRaidTeamIcon = {
+                    type = "toggle",
+                    name = "Use Raid Team Icon",
+                    desc = "Use raid team icon in display",
+                    get = function() return RaidTeamDecorator.db.profile.useRaidTeamIcon end,
+                    set = function(info, value)
+                        RaidTeamDecorator.db.profile.useRaidTeamIcon = value
+                    end,
+                    order = 3,
                 },
             },
         },
@@ -349,11 +363,15 @@ function RaidTeamDecorator:OnEnable()
     if self.db.profile.enableTooltips then
         self:UpdateTooltipHooks()
     end
+    
+    -- Set up chat hyperlink handlers for raid team icon tooltips
+    self:SetupChatHyperlinkHooks()
 end
 
 function RaidTeamDecorator:OnDisable()
     self:UnregisterAllEvents()
     self:UnhookAll()
+    self:UnhookChatHyperlinks()
 end
 
 function RaidTeamDecorator:UnhookAll()
@@ -364,6 +382,17 @@ function RaidTeamDecorator:UnhookAll()
     
     -- Clear the stored functions
     chatFilterFunctions = {}
+end
+
+function RaidTeamDecorator:UnhookChatHyperlinks()
+    for i = 1, (NUM_CHAT_WINDOWS or 10) do
+        local frame = _G["ChatFrame" .. i]
+        if frame and chatHyperlinkOriginals[i] then
+            frame:SetScript("OnHyperlinkEnter", chatHyperlinkOriginals[i].enter)
+            frame:SetScript("OnHyperlinkLeave", chatHyperlinkOriginals[i].leave)
+        end
+    end
+    chatHyperlinkOriginals = {}
 end
 
 function RaidTeamDecorator:OnAddonLoaded(event, addonName)
@@ -726,6 +755,40 @@ function RaidTeamDecorator:GetColoredRaidTeam(teamString)
     return color .. teamString .. "|r"
 end
 
+function RaidTeamDecorator:GetRaidTeamIconTexture(teamString)
+    if not teamString then
+        return nil
+    end
+
+    -- Look up mapping from tag to determine icon base name
+    local mappings = self:GetAllMappings()
+    local iconBase = nil
+
+    for _, mapping in ipairs(mappings) do
+        if mapping and mapping.tag == teamString and mapping.pattern and mapping.pattern ~= "" then
+            -- Use the first pattern segment (before any |) as the icon base
+            local firstPart = string.match(mapping.pattern, "([^|]+)")
+            if firstPart then
+                -- Trim whitespace and remove interior spaces for filename safety
+                firstPart = firstPart:gsub("^%s*(.-)%s*$", "%1")
+                firstPart = firstPart:gsub("%s+", "")
+                if firstPart ~= "" then
+                    iconBase = firstPart
+                end
+            end
+            break
+        end
+    end
+
+    if not iconBase then
+        return nil
+    end
+
+    -- Hyperlink format: |Hraidteam:iconBase|h|Tpath:16:16|t|h (\124 is the '|' byte)
+    local path = "Interface\\AddOns\\RaidTeamDecorator\\logos\\" .. iconBase
+    return string.format("\124Hraidteam:%s\124h\124T%s:16:16\124t\124h", iconBase, path)
+end
+
 function RaidTeamDecorator:RefreshRaidTeamCache(forceRefresh)
     local isManualRefresh = forceRefresh or false
     self:DebugPrint("Starting cache refresh..." .. (isManualRefresh and " (manual)" or " (automatic)"))
@@ -941,6 +1004,52 @@ function RaidTeamDecorator:UpdateTooltipHooks()
     end
 end
 
+local function OnRaidTeamHyperlinkEnter(self, linkString, ...)
+    local linkType, teamName = strsplit(":", linkString)
+    if linkType == "raidteam" and teamName then
+        ShowUIPanel(GameTooltip)
+        GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
+        GameTooltip:ClearLines()
+        -- Capitalize team name for display (e.g. baloo -> Baloo)
+        local displayName = teamName:gsub("^%l", string.upper)
+        GameTooltip:AddLine("Raid Team", 1, 1, 1)
+        -- Add line with 32x32 icon and team name
+        local texturePath = "Interface\\AddOns\\RaidTeamDecorator\\logos\\" .. teamName
+        GameTooltip:AddLine("|T" .. texturePath .. ":64:64|t " .. displayName, 0, 0.8, 1)
+        GameTooltip:Show()
+        return
+    end
+    -- Chain to original handler
+    local frameName = self:GetName()
+    local idx = frameName and tonumber(frameName:match("ChatFrame(%d+)"))
+    if idx and chatHyperlinkOriginals[idx] and chatHyperlinkOriginals[idx].enter then
+        chatHyperlinkOriginals[idx].enter(self, linkString, ...)
+    end
+end
+
+local function OnRaidTeamHyperlinkLeave(self, ...)
+    local frameName = self:GetName()
+    local idx = frameName and tonumber(frameName:match("ChatFrame(%d+)"))
+    if idx and chatHyperlinkOriginals[idx] and chatHyperlinkOriginals[idx].leave then
+        chatHyperlinkOriginals[idx].leave(self, ...)
+    end
+    GameTooltip:Hide()
+end
+
+function RaidTeamDecorator:SetupChatHyperlinkHooks()
+    for i = 1, (NUM_CHAT_WINDOWS or 10) do
+        local frame = _G["ChatFrame" .. i]
+        if frame then
+            chatHyperlinkOriginals[i] = {
+                enter = frame:GetScript("OnHyperlinkEnter"),
+                leave = frame:GetScript("OnHyperlinkLeave"),
+            }
+            frame:SetScript("OnHyperlinkEnter", OnRaidTeamHyperlinkEnter)
+            frame:SetScript("OnHyperlinkLeave", OnRaidTeamHyperlinkLeave)
+        end
+    end
+end
+
 
 function RaidTeamDecorator:AddRaidTeamToTooltip(tooltip, unit)
     -- If unit is nil, try to get it from the tooltip
@@ -1112,15 +1221,36 @@ function RaidTeamDecorator:ChatMessageFilter(event, msg, sender, ...)
         
         -- Only add prefix if it doesn't already exist
         if not hasExistingPrefix then
-            -- Create colored raid team prefix
-            local coloredTeams = {}
-            for _, team in ipairs(raidTeams) do
-                table.insert(coloredTeams, self:GetColoredRaidTeam(team))
+            local raidTeamPrefix
+
+            if self.db.profile.useRaidTeamIcon then
+                -- Build icon-based prefix; fall back to colored tags if icon missing
+                local iconParts = {}
+                for _, team in ipairs(raidTeams) do
+                    local iconTexture = self:GetRaidTeamIconTexture(team)
+                    if iconTexture then
+                        table.insert(iconParts, iconTexture)
+                    else
+                        table.insert(iconParts, self:GetColoredRaidTeam(team))
+                    end
+                end
+
+                if #iconParts > 0 then
+                    raidTeamPrefix = table.concat(iconParts, "") .. ": "
+                end
+            else
+                -- Create colored raid team prefix
+                local coloredTeams = {}
+                for _, team in ipairs(raidTeams) do
+                    table.insert(coloredTeams, self:GetColoredRaidTeam(team))
+                end
+                raidTeamPrefix = "[" .. table.concat(coloredTeams, ",") .. "]: "
             end
-            local raidTeamPrefix = "[" .. table.concat(coloredTeams, ",") .. "]: "
-            
-            -- Prepend to message
-            msg = raidTeamPrefix .. msg
+
+            if raidTeamPrefix and raidTeamPrefix ~= "" then
+                -- Prepend to message
+                msg = raidTeamPrefix .. msg
+            end
         end
     end
     
