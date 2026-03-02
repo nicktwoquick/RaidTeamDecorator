@@ -24,7 +24,8 @@ jobs:
           for f in *.svg; do
             convert -background none -alpha on "$f" -flip -define tga:bits-per-pixel=32 "${f%.svg}.tga"
           done
+          rm *.svg
       - name: Package and release
         uses: BigWigsMods/packager@v2
         with:
-          args: -g classic -w 0
+          args: -g bcc -w 0

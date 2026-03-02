@@ -2,7 +2,7 @@
 ## Title: RaidTeamDecorator
 ## Notes: Displays raid team information in chat messages and tooltips
 ## Author: nicktwoquick
-## Version: 1.0.0
+## Version: 2.0.0
 ## X-Wago-ID: QNlqWx6e
 ## X-Curse-Project-ID: 1357237
 ## SavedVariables: RaidTeamDecoratorDB
