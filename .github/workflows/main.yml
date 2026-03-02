@@ -25,6 +25,8 @@ jobs:
             convert -background none -alpha on "$f" -flip -define tga:bits-per-pixel=32 "${f%.svg}.tga"
           done
           rm *.svg
+      - name: Stage generated TGA files
+        run: git add logos/
       - name: Package and release
         uses: BigWigsMods/packager@v2
         with:
