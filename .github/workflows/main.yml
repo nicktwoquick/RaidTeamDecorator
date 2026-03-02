@@ -22,7 +22,7 @@ jobs:
           sudo apt-get install -y imagemagick librsvg2-bin
           cd logos
           for f in *.svg; do
-            convert "$f" "${f%.svg}.tga"
+            convert -background none -alpha on "$f" -flip -flop -define tga:bits-per-pixel=32 "${f%.svg}.tga"
           done
       - name: Package and release
         uses: BigWigsMods/packager@v2
