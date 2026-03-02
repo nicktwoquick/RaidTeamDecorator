@@ -26,7 +26,7 @@ jobs:
           done
           rm *.svg
       - name: Stage generated TGA files
-        run: git add logos/
+        run: git add -f logos/
       - name: Package and release
         uses: BigWigsMods/packager@v2
         with:
