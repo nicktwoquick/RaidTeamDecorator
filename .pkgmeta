@@ -6,3 +6,4 @@ move-folders:
 
 ignore:
   - .github
+  - .gitignore
