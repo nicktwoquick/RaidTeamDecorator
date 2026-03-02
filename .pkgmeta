@@ -1,5 +1,9 @@
 package-as: RaidTeamDecorator
 
+move-folders:
+  logos: logos
+  libs: libs
+
 ignore:
     - .github/
     - .gitignore
