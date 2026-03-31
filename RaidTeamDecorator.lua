@@ -43,6 +43,21 @@ local defaults = {
 -- Global cache for raid team data
 RaidTeamCache = {}
 
+-- After RebuildRaidTeamIconAvailability: tag -> file exists; iconBase (pattern) -> file exists (for hyperlink tooltips)
+local raidTeamIconFileAvailable = {}
+local raidTeamIconFileAvailableByIconBase = {}
+
+local iconProbeParent, iconProbeTexture
+local function RaidTeamDecorator_TexturePathExists(path)
+    if not iconProbeTexture then
+        iconProbeParent = CreateFrame("Frame", nil, UIParent)
+        iconProbeParent:Hide()
+        iconProbeTexture = iconProbeParent:CreateTexture(nil, "ARTWORK")
+    end
+    iconProbeTexture:SetTexture(path)
+    return iconProbeTexture:GetTexture() and true or false
+end
+
 -- Flag to prevent multiple simultaneous UpdateChatHooks calls
 local updatingChatHooks = false
 
@@ -318,6 +333,7 @@ function RaidTeamDecorator:OnInitialize()
     
     -- Build mapping options dynamically
     self:BuildMappingOptions()
+    self:RebuildRaidTeamIconAvailability()
     
     -- Register configuration
     AceConfig:RegisterOptionsTable("RaidTeamDecorator", options)
@@ -755,38 +771,70 @@ function RaidTeamDecorator:GetColoredRaidTeam(teamString)
     return color .. teamString .. "|r"
 end
 
-function RaidTeamDecorator:GetRaidTeamIconTexture(teamString)
+-- Resolve pattern filename key and color for a raid team tag (for icons / hyperlinks)
+function RaidTeamDecorator:GetRaidTeamPatternIconMeta(teamString)
     if not teamString then
-        return nil
+        return nil, nil
     end
 
-    -- Look up mapping from tag to determine icon base name
     local mappings = self:GetAllMappings()
-    local iconBase = nil
-
     for _, mapping in ipairs(mappings) do
         if mapping and mapping.tag == teamString and mapping.pattern and mapping.pattern ~= "" then
-            -- Use the first pattern segment (before any |) as the icon base
             local firstPart = string.match(mapping.pattern, "([^|]+)")
             if firstPart then
-                -- Trim whitespace and remove interior spaces for filename safety
                 firstPart = firstPart:gsub("^%s*(.-)%s*$", "%1")
                 firstPart = firstPart:gsub("%s+", "")
                 if firstPart ~= "" then
-                    iconBase = firstPart
+                    return firstPart, mapping.color or "|cffFFFFFF"
                 end
             end
             break
         end
     end
 
+    return nil, nil
+end
+
+function RaidTeamDecorator:RebuildRaidTeamIconAvailability()
+    for k in pairs(raidTeamIconFileAvailable) do
+        raidTeamIconFileAvailable[k] = nil
+    end
+    for k in pairs(raidTeamIconFileAvailableByIconBase) do
+        raidTeamIconFileAvailableByIconBase[k] = nil
+    end
+
+    for i = 1, 10 do
+        local mapping = self:GetMappingConfig(i)
+        if mapping and mapping.tag and mapping.pattern and mapping.pattern ~= "" then
+            local firstPart = string.match(mapping.pattern, "([^|]+)")
+            if firstPart then
+                firstPart = firstPart:gsub("^%s*(.-)%s*$", "%1")
+                firstPart = firstPart:gsub("%s+", "")
+                if firstPart ~= "" then
+                    local path = "Interface\\AddOns\\RaidTeamDecorator\\logos\\" .. firstPart
+                    local ok = RaidTeamDecorator_TexturePathExists(path)
+                    raidTeamIconFileAvailable[mapping.tag] = ok
+                    raidTeamIconFileAvailableByIconBase[firstPart] = ok
+                end
+            end
+        end
+    end
+end
+
+-- Chat segment: texture if logos/<pattern>.tga resolves; else first letter of tag as colored text in same raidteam hyperlink
+function RaidTeamDecorator:GetRaidTeamChatBadge(teamString)
+    local iconBase, color = self:GetRaidTeamPatternIconMeta(teamString)
     if not iconBase then
         return nil
     end
 
-    -- Hyperlink format: |Hraidteam:iconBase|h|Tpath:16:16|t|h (\124 is the '|' byte)
-    local path = "Interface\\AddOns\\RaidTeamDecorator\\logos\\" .. iconBase
-    return string.format("\124Hraidteam:%s\124h\124T%s:16:16\124t\124h", iconBase, path)
+    if raidTeamIconFileAvailable[teamString] then
+        local path = "Interface\\AddOns\\RaidTeamDecorator\\logos\\" .. iconBase
+        return string.format("\124Hraidteam:%s\124h\124T%s:16:16\124t\124h", iconBase, path)
+    end
+
+    local letter = string.sub(teamString, 1, 1)
+    return string.format("\124Hraidteam:%s\124h%s%s\124r\124h", iconBase, color, letter)
 end
 
 function RaidTeamDecorator:RefreshRaidTeamCache(forceRefresh)
@@ -858,6 +906,7 @@ function RaidTeamDecorator:RefreshRaidTeamCache(forceRefresh)
     
     -- Mark cache as initialized after successful refresh
     cacheInitialized = true
+    self:RebuildRaidTeamIconAvailability()
     self:DebugPrint(string.format("Cache refresh complete: %d members processed, %d with raid teams", memberCount, raidTeamCount))
     
     if raidTeamCount == 0 then
@@ -1013,9 +1062,12 @@ local function OnRaidTeamHyperlinkEnter(self, linkString, ...)
         -- Capitalize team name for display (e.g. baloo -> Baloo)
         local displayName = teamName:gsub("^%l", string.upper)
         GameTooltip:AddLine("Raid Team", 1, 1, 1)
-        -- Add line with 32x32 icon and team name
         local texturePath = "Interface\\AddOns\\RaidTeamDecorator\\logos\\" .. teamName
-        GameTooltip:AddLine("|T" .. texturePath .. ":64:64|t " .. displayName, 0, 0.8, 1)
+        if raidTeamIconFileAvailableByIconBase[teamName] then
+            GameTooltip:AddLine("|T" .. texturePath .. ":64:64|t " .. displayName, 0, 0.8, 1)
+        else
+            GameTooltip:AddLine(displayName, 0, 0.8, 1)
+        end
         GameTooltip:Show()
         return
     end
@@ -1224,12 +1276,12 @@ function RaidTeamDecorator:ChatMessageFilter(event, msg, sender, ...)
             local raidTeamPrefix
 
             if self.db.profile.useRaidTeamIcon then
-                -- Build icon-based prefix; fall back to colored tags if icon missing
+                -- Build icon-based prefix; missing .tga uses letter hyperlink (see GetRaidTeamChatBadge)
                 local iconParts = {}
                 for _, team in ipairs(raidTeams) do
-                    local iconTexture = self:GetRaidTeamIconTexture(team)
-                    if iconTexture then
-                        table.insert(iconParts, iconTexture)
+                    local badge = self:GetRaidTeamChatBadge(team)
+                    if badge then
+                        table.insert(iconParts, badge)
                     else
                         table.insert(iconParts, self:GetColoredRaidTeam(team))
                     end
