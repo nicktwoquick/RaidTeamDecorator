@@ -3,6 +3,7 @@
 ## Notes: Displays raid team information in chat messages and tooltips
 ## Author: nicktwoquick
 ## Version: 2.0.0
+## Category: Guild
 ## X-Wago-ID: QNlqWx6e
 ## X-Curse-Project-ID: 1357237
 ## SavedVariables: RaidTeamDecoratorDB
