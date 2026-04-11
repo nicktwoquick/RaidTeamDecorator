@@ -1,0 +1,30 @@
+name: Commitlint
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  commitlint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone project
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Lint commit messages on this PR
+        run: |
+          set -euo pipefail
+          # commitlint excludes --from and includes --to (same semantics as PR base..head in commitlint docs)
+          npm exec --yes --package=@commitlint/cli --package=@commitlint/config-conventional -- \
+            commitlint \
+              --from="${{ github.event.pull_request.base.sha }}" \
+              --to="${{ github.event.pull_request.head.sha }}" \
+              --verbose \
+              --extends @commitlint/config-conventional
