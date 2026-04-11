@@ -4,27 +4,24 @@ A World of Warcraft addon that displays raid team information in chat messages a
 
 ## Features
 
-- **Raid Team Display**: Shows colored raid team tags before chat messages from guild members
-- **Tooltip Integration**: Displays raid team information when hovering over guild members
-- **GRM Integration**: Automatically reads raid team information from GRM's custom notes
-- **Alt Group Support**: Propagates raid team information across alt characters in the same group
-- **Customizable Mappings**: Configure up to 10 different raid team patterns with custom colors
-- **Configurable Channels**: Choose which chat channels to show raid teams in (Guild, Whisper, Raid, Party)
-- **Performance Optimized**: Automatically disables tooltips in raid instances for better performance
-- **Settings Panel**: Easy-to-use configuration interface with real-time updates
-- **Debug Mode**: Optional debug messages for troubleshooting
-- **Slash Commands**: Quick access to settings and cache refresh
+- **Chat tags**: Colored raid team prefixes on guild messages in the channels you enable (guild, whisper, raid, party)
+- **Optional team icons**: Enable **Use Raid Team Icon** to show team logos in chat; drop matching TGAs in `logos/` (see [Adding New Raid Team Icons](#adding-new-raid-team-icons))
+- **Tooltips**: Raid team info when hovering guild members; optional **Disable Tooltips in Raid Zones** for performance in instances
+- **GRM integration**: Reads raid teams from GRM custom notes and keeps a cache in sync with roster changes
+- **Alt groups**: Teams from all characters in a GRM alt group are merged so every alt shows the same tags
+- **Mappings**: Up to 10 patterns with OR logic (`|`), custom tag text, and colors
+- **In-game setup**: Options panel plus `/rtd` commands (open settings, refresh cache, status, toggle, debug)
 
 ## Requirements
 
-- World of Warcraft Classic Era (Interface 11508)
+- World of Warcraft **Classic: Burning Crusade Anniversary**
 - Guild Roster Manager (GRM) addon
 - Ace3 libraries (included)
 
 ## Installation
 
 1. Download the addon files
-2. Extract to your `World of Warcraft\_classic_\Interface\AddOns\` directory
+2. Extract to your `World of Warcraft\_classic_anniversary_\Interface\AddOns\` directory (or the `Interface\AddOns` folder for your **Burning Crusade Anniversary** install)
 3. Ensure Guild Roster Manager is installed and enabled
 4. Restart World of Warcraft or reload your UI (`/reload`)
 
@@ -34,7 +31,7 @@ A World of Warcraft addon that displays raid team information in chat messages a
 
 Once installed, the addon will automatically:
 - Cache raid team information from GRM's custom notes on login
-- Display colored raid team tags in chat messages
+- Display colored raid team tags in chat (and optional icons if **Use Raid Team Icon** is on)
 - Update the cache when guild roster changes
 
 ### Raid Team Format
@@ -81,6 +78,7 @@ Available settings:
 - **Tooltip Settings**:
   - **Enable Tooltips**: Show raid team info in tooltips
   - **Disable in Raid Zones**: Automatically disable in raid instances for performance
+- **Use Raid Team Icon**: Show team logo images in chat when a matching file exists in `logos/`
 - **Raid Team Mappings**: Configure up to 10 custom raid team patterns
   - Enable/disable each mapping
   - Set custom tags
@@ -104,7 +102,7 @@ As long as the filename matches the search pattern in use (e.g. `baloo.tga` for 
 2. **Pattern Parsing**: Extracts raid team information using configurable patterns with OR logic support
 3. **Alt Group Processing**: Merges raid teams across alt characters in the same GRM group
 4. **Caching**: Stores raid team data for fast lookup during chat and tooltip display
-5. **Chat Filtering**: Hooks into chat events to add colored raid team prefixes
+5. **Chat filtering**: Hooks chat events to add colored team prefixes and optional icons
 6. **Tooltip Integration**: Shows raid team information when hovering over guild members
 7. **Performance Optimization**: Automatically disables tooltips in raid instances
 
