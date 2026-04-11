@@ -16,6 +16,26 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Validate conventional commits since v1.0.0
+        env:
+          BASELINE_TAG: v1.0.0
+        run: |
+          set -euo pipefail
+          if ! git rev-parse --verify "${BASELINE_TAG}^{commit}" >/dev/null 2>&1; then
+            echo "::error::Baseline tag ${BASELINE_TAG} not found. Fetch tags or create the tag before releasing."
+            exit 1
+          fi
+          # commitlint excludes --from and includes --to (same semantics as PR base..head in commitlint docs)
+          npm exec --yes --package=@commitlint/cli --package=@commitlint/config-conventional -- \
+            commitlint \
+              --from="${BASELINE_TAG}" \
+              --to=HEAD \
+              --verbose \
+              --extends @commitlint/config-conventional
       - name: Convert logos from SVG to TGA
         run: |
           sudo apt-get update
