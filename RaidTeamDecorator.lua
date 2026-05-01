@@ -6,16 +6,16 @@ local AceConfig = LibStub("AceConfig-3.0")
 local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 
 
--- Default raid team mappings (8 named + 2 placeholder)
+-- Default raid team mappings (Stormwind Public Library: Iliad + Odyssey + placeholders)
 local defaultMappings = {
-    {tag = "P", pattern = "polar", color = "|cff4682B4", enabled = true},
-    {tag = "F", pattern = "flex", color = "|cffDC143C", enabled = true},
-    {tag = "Y", pattern = "yogi", color = "|cff2E8B57", enabled = true},
-    {tag = "T", pattern = "ted", color = "|cffFF8C00", enabled = true},
-    {tag = "W", pattern = "winnie", color = "|cff9370DB", enabled = true},
-    {tag = "S", pattern = "smokey", color = "|cff20B2AA", enabled = true},
-    {tag = "B", pattern = "baloo", color = "|cffFF6347", enabled = true},
-    {tag = "G", pattern = "grizzly", color = "|cff32CD32", enabled = true},
+    {tag = "I", pattern = "iliad", color = "|cffC9A227", enabled = true},
+    {tag = "O", pattern = "odyssey", color = "|cff6EC4D8", enabled = true},
+    {tag = "TEAM3", pattern = "team3", color = "|cffFFD700", enabled = false},
+    {tag = "TEAM4", pattern = "team4", color = "|cffFF69B4", enabled = false},
+    {tag = "TEAM5", pattern = "team5", color = "|cff87CEEB", enabled = false},
+    {tag = "TEAM6", pattern = "team6", color = "|cff90EE90", enabled = false},
+    {tag = "TEAM7", pattern = "team7", color = "|cffDDA0DD", enabled = false},
+    {tag = "TEAM8", pattern = "team8", color = "|cffF0E68C", enabled = false},
     {tag = "TEAM9", pattern = "team9", color = "|cffFFD700", enabled = false},
     {tag = "TEAM10", pattern = "team10", color = "|cffFF69B4", enabled = false}
 }
@@ -36,8 +36,9 @@ local defaults = {
     disableInRaidZones = true,
     -- Mapping overrides (user customizations)
     mappingOverrides = {},
-    -- One-time migration marker: when true, we have already clobbered user mappings to new defaults (do not clobber again)
+    -- One-time migration markers: when true, we have already clobbered user mappings to new defaults (do not clobber again)
     mappingsClobberedV1 = false,
+    mappingsClobberedV2 = false,
 }
 
 -- Global cache for raid team data
@@ -330,7 +331,12 @@ function RaidTeamDecorator:OnInitialize()
         self.db.profile.mappingOverrides = {}
         self.db.profile.mappingsClobberedV1 = true
     end
-    
+    -- v2.1: SPL Iliad/Odyssey defaults (replaces bear-themed defaults)
+    if not self.db.profile.mappingsClobberedV2 then
+        self.db.profile.mappingOverrides = {}
+        self.db.profile.mappingsClobberedV2 = true
+    end
+
     -- Build mapping options dynamically
     self:BuildMappingOptions()
     self:RebuildRaidTeamIconAvailability()
@@ -1059,7 +1065,7 @@ local function OnRaidTeamHyperlinkEnter(self, linkString, ...)
         ShowUIPanel(GameTooltip)
         GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
         GameTooltip:ClearLines()
-        -- Capitalize team name for display (e.g. baloo -> Baloo)
+        -- Capitalize team name for display (e.g. iliad -> Iliad)
         local displayName = teamName:gsub("^%l", string.upper)
         GameTooltip:AddLine("Raid Team", 1, 1, 1)
         local texturePath = "Interface\\AddOns\\RaidTeamDecorator\\logos\\" .. teamName

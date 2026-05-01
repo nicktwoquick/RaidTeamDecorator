@@ -94,7 +94,7 @@ When using **Use Raid Team Icon** mode, the addon displays team logos in chat. T
 1. **Commit the SVG** to the `logos/` folder (the addon uses TGA at runtime; SVGs are the source)
 2. **Or copy the TGA** directly into `Interface\AddOns\RaidTeamDecorator\logos\` in your addon folder
 
-As long as the filename matches the search pattern in use (e.g. `baloo.tga` for pattern `baloo`), it will work. Bob's your uncle.
+As long as the filename matches the search pattern in use (e.g. `iliad.tga` for pattern `iliad`), it will work. Bob's your uncle.
 
 ## How It Works
 
